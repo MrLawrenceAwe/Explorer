@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.api.dependencies import get_session_factory
-from backend.db import SavedTopic, Report, session_scope
-from backend.schemas import SavedTopicResponse, CreateSavedTopicRequest
+from backend.db import SavedTopic, TopicCollection, Report, session_scope
+from backend.schemas import SavedTopicResponse, CreateSavedTopicRequest, UpdateSavedTopicRequest
 from backend.utils.api_helpers import (
     normalize_user,
     get_or_create_user,
@@ -40,6 +40,7 @@ def list_saved_topics(
                 id=topic.id,
                 title=topic.title,
                 slug=topic.slug,
+                collection_id=topic.collection_id,
                 created_at=topic.created_at.isoformat(),
             )
             for topic in topics
@@ -66,10 +67,14 @@ def create_saved_topic(
         if existing:
             if existing.is_deleted:
                 existing.is_deleted = False
+            # Update collection if provided
+            if payload.collection_id is not None:
+                existing.collection_id = payload.collection_id
             return SavedTopicResponse(
                 id=existing.id,
                 title=existing.title,
                 slug=existing.slug,
+                collection_id=existing.collection_id,
                 created_at=existing.created_at.isoformat(),
             )
 
@@ -88,15 +93,24 @@ def create_saved_topic(
                     id=existing_topic.id,
                     title=existing_topic.title,
                     slug=existing_topic.slug,
+                    collection_id=existing_topic.collection_id,
                     created_at=existing_topic.created_at.isoformat(),
                 )
             attempt += 1
             slug = f"{base_slug}-{attempt}"
 
+        # Validate collection_id if provided
+        collection_id = payload.collection_id
+        if collection_id is not None:
+            collection = session.get(TopicCollection, collection_id)
+            if not collection or collection.owner_user_id != user.id or collection.is_deleted:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
+
         topic = SavedTopic(
             slug=slug,
             title=title,
             owner=user,
+            collection_id=collection_id,
         )
         session.add(topic)
         session.flush()
@@ -104,6 +118,7 @@ def create_saved_topic(
             id=topic.id,
             title=topic.title,
             slug=topic.slug,
+            collection_id=topic.collection_id,
             created_at=topic.created_at.isoformat(),
         )
 
@@ -131,3 +146,40 @@ def delete_saved_topic(
         ).all()
         for report in reports:
             report.is_deleted = True
+
+
+@router.patch("/saved_topics/{topic_id}", response_model=SavedTopicResponse)
+def update_saved_topic(
+    topic_id: uuid.UUID,
+    payload: UpdateSavedTopicRequest,
+    user_email: EmailStr = Query(..., description="Email used to scope the update to the current user."),
+    username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
+    session_factory: sessionmaker[Session] = Depends(get_session_factory),
+):
+    """Update a saved topic (e.g., move to a different collection)."""
+    user_email, username = normalize_user(user_email, username)
+    with session_scope(session_factory) as session:
+        user = get_or_create_user(session, user_email, username)
+        topic = session.get(SavedTopic, topic_id)
+        if not topic or topic.owner_user_id != user.id or topic.is_deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved topic not found.")
+        
+        # Update collection_id
+        if payload.collection_id is not None:
+            # Validate collection exists and belongs to user
+            collection = session.get(TopicCollection, payload.collection_id)
+            if not collection or collection.owner_user_id != user.id or collection.is_deleted:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
+            topic.collection_id = payload.collection_id
+        elif hasattr(payload, 'collection_id'):
+            # Explicitly set to None (move to uncategorized)
+            topic.collection_id = None
+        
+        session.flush()
+        return SavedTopicResponse(
+            id=topic.id,
+            title=topic.title,
+            slug=topic.slug,
+            collection_id=topic.collection_id,
+            created_at=topic.created_at.isoformat(),
+        )

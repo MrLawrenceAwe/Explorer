@@ -7,7 +7,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Set
 from sqlalchemy import MetaData, Table, inspect, text
 from sqlalchemy.engine import Connection, Engine
 
-from .models import Report, SavedTopic, User
+from .models import Report, SavedTopic, TopicCollection, User
 
 try:
     import fcntl
@@ -27,6 +27,7 @@ def ensure_lightweight_schema(engine: Engine) -> None:
     existing_tables = set(inspector.get_table_names())
     managed_tables: Dict[str, Table] = {
         "users": User.__table__,
+        "topic_collections": TopicCollection.__table__,
         "saved_topics": SavedTopic.__table__,
         "reports": Report.__table__,
     }

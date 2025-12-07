@@ -1,53 +1,55 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { useChat } from './hooks/useChat';
 import { useOutlineForm } from './hooks/useOutlineForm';
 import { useSettings } from './hooks/useSettings';
 import { usePersistence } from './hooks/usePersistence';
 import { useExplore } from './hooks/useExplore';
 import { useTopicView } from './hooks/useTopicView';
-
 import { useGeneration } from './hooks/useGeneration';
+import { useSavedData } from './hooks/useSavedData';
+import { useAppState } from './hooks/useAppState';
+import { useCollections } from './hooks/useCollections';
+
 import { Sidebar } from './components/Sidebar';
 import { ChatPane } from './components/ChatPane';
 import { TopicView } from './components/TopicView';
 import { OutlineForm } from './components/OutlineForm';
 import { ReportView } from './components/ReportView';
-import {
-  loadApiBase,
-  MAX_SAVED_TOPICS,
-  MAX_SAVED_REPORTS,
-  summarizeReport,
-  MODEL_PRESET_LABELS,
-  loadUserProfile,
-  persistUserProfile,
-  fetchSavedTopics,
-  createSavedTopic,
-  deleteSavedTopic,
-  fetchSavedReports,
-  deleteSavedReport,
-  cleanHeadingForTopic,
-} from './utils/helpers';
-
 import { ExploreSuggestions } from './components/ExploreSuggestions';
 import { SettingsModal } from './components/SettingsModal';
 
+import { MODEL_PRESET_LABELS } from './utils/helpers';
+
 function App() {
-  const [apiBase] = useState(loadApiBase);
-  const [user, setUser] = useState(loadUserProfile);
-  const [savedTopics, setSavedTopics] = useState([]);
-  const [savedReports, setSavedReports] = useState([]);
-  const [isSyncingSaved, setIsSyncingSaved] = useState(false);
-  const [savedError, setSavedError] = useState(null);
-  const [activeReport, setActiveReport] = useState(null);
-  const [composerValue, setComposerValue] = useState("");
-  const [topicViewBarValue, setTopicViewBarValue] = useState("");
-  const [mode, setMode] = useState("topic");
-  const [sectionCount, setSectionCount] = useState(3);
-  const [chatAvoidTopics, setChatAvoidTopics] = useState("");
-  const [chatIncludeTopics, setChatIncludeTopics] = useState("");
+  // Core app state
+  const {
+    apiBase,
+    user,
+    setUser,
+    activeReport,
+    setActiveReport,
+    composerValue,
+    setComposerValue,
+    topicViewBarValue,
+    setTopicViewBarValue,
+    mode,
+    setMode,
+    sectionCount,
+    setSectionCount,
+    chatAvoidTopics,
+    setChatAvoidTopics,
+    chatIncludeTopics,
+    setChatIncludeTopics,
+    isHomeView,
+    setIsHomeView,
+    isReportViewOpen,
+    handleReportOpen: baseHandleReportOpen,
+    handleReportClose,
+    normalizeTopicForOpen,
+    resetToHome,
+  } = useAppState();
 
-  const [isHomeView, setIsHomeView] = useState(false);
-
+  // Settings management
   const {
     modelPresets,
     defaultPreset,
@@ -71,92 +73,51 @@ function App() {
     suggestionModel,
   });
 
-  useEffect(() => {
-    persistUserProfile(user);
-  }, [user]);
+  // Saved data management
+  const {
+    savedTopics,
+    savedReports,
+    isSyncing: isSyncingSaved,
+    error: savedError,
+    setError: setSavedError,
+    setSavedTopics,
+    rememberReport,
+    forgetReport,
+    rememberTopics,
+    rememberTopic,
+    forgetTopic,
+    updateTopicCollection,
+  } = useSavedData({ apiBase, user });
 
-  const loadTopics = useCallback(async () => {
-    if (!user.email) {
-      setSavedTopics([]);
-      return;
-    }
-    const topics = await fetchSavedTopics(apiBase, user);
-    setSavedTopics(topics.slice(0, MAX_SAVED_TOPICS));
-  }, [apiBase, user]);
+  // Collections management
+  const {
+    collections,
+    isLoading: isLoadingCollections,
+    expandedCollections,
+    editingCollectionId,
+    isCreating: isCreatingCollection,
+    newCollectionName,
+    setNewCollectionName,
+    loadCollections,
+    toggleCollectionExpanded,
+    handleCreateCollection,
+    handleUpdateCollection,
+    handleDeleteCollection,
+    handleMoveTopicToCollection,
+    startCreating: startCreatingCollection,
+    cancelCreating: cancelCreatingCollection,
+    startEditing: startEditingCollection,
+    cancelEditing: cancelEditingCollection,
+  } = useCollections({
+    apiBase,
+    user,
+    onTopicMoved: (updatedTopic) => {
+      updateTopicCollection(updatedTopic.id, updatedTopic.collectionId);
+    },
+    onError: (msg) => setSavedError(msg),
+  });
 
-  const loadReports = useCallback(async () => {
-    if (!user.email) {
-      setSavedReports([]);
-      return;
-    }
-    const reports = await fetchSavedReports(apiBase, user, { includeContent: true });
-    setSavedReports(reports.slice(0, MAX_SAVED_REPORTS));
-  }, [apiBase, user]);
-
-  const refreshSavedData = useCallback(async () => {
-    if (!user.email) {
-      setSavedTopics([]);
-      setSavedReports([]);
-      setSavedError(null);
-      setIsSyncingSaved(false);
-      return;
-    }
-    setIsSyncingSaved(true);
-    try {
-      await Promise.all([loadTopics(), loadReports()]);
-      setSavedError(null);
-    } catch (error) {
-      setSavedError(error.message || "Failed to sync saved items.");
-    } finally {
-      setIsSyncingSaved(false);
-    }
-  }, [loadReports, loadTopics, user.email]);
-
-  useEffect(() => {
-    refreshSavedData();
-  }, [refreshSavedData]);
-
-  const rememberReport = useCallback(async (topic, content, title, outline = null) => {
-    const safeContent = content || "";
-    const normalizedTitle = (title || topic || "Explorer Report").trim() || "Explorer Report";
-    const normalizedTopic = (topic || normalizedTitle).trim();
-    const summary = summarizeReport(safeContent || normalizedTitle);
-    if (!user.email) {
-      setSavedReports((current) => [
-        {
-          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          topic: normalizedTopic,
-          title: normalizedTitle,
-          content: safeContent,
-          outline,
-          preview: summary,
-        },
-        ...current,
-      ].slice(0, MAX_SAVED_REPORTS));
-      return;
-    }
-    try {
-      await loadReports();
-      setSavedError(null);
-    } catch (error) {
-      console.error("Failed to refresh reports", error);
-      setSavedReports((current) => [
-        {
-          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          topic: normalizedTopic,
-          title: normalizedTitle,
-          content: safeContent,
-          outline,
-          preview: summary,
-        },
-        ...current,
-      ].slice(0, MAX_SAVED_REPORTS));
-      setSavedError(error.message || "Failed to refresh saved reports.");
-    }
-  }, [loadReports, user.email, setSavedReports]);
-
-
-
+  // Chat management
   const {
     messages,
     isRunning,
@@ -167,103 +128,31 @@ function App() {
     stopGeneration,
   } = useChat(apiBase, rememberReport);
 
+  // Warn on page leave during generation
   useEffect(() => {
     if (!isRunning) return undefined;
     const handleBeforeUnload = (event) => {
       event.preventDefault();
-      event.returnValue = "A report is still generating. Leaving will stop it.";
+      event.returnValue = 'A report is still generating. Leaving will stop it.';
       return event.returnValue;
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isRunning]);
 
-  const forgetReport = useCallback(async (id) => {
-    if (!id) return;
-
-    const reportToDelete = savedReports.find(r => r.id === id);
-
-    if (!user.email) {
-      setSavedReports((current) => current.filter((entry) => entry.id !== id));
-    } else {
-      try {
-        await deleteSavedReport(apiBase, user, id);
-        setSavedReports((current) => current.filter((entry) => entry.id !== id));
-      } catch (error) {
-        console.error("Failed to delete report", error);
-        setSavedError(error.message || "Failed to delete report.");
-      }
-    }
-
+  // Report deletion handler
+  const handleForgetReport = useCallback(async (id) => {
+    const reportToDelete = await forgetReport(id);
     if (reportToDelete && !isRunning) {
-      const assistantMsg = [...messages].reverse().find((m) => m.role === "assistant" && m.reportTopic);
+      const assistantMsg = [...messages].reverse().find((m) => m.role === 'assistant' && m.reportTopic);
       if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
         setMessages([]);
         setIsHomeView(true);
       }
     }
-  }, [apiBase, user, savedReports, messages, isRunning, setMessages]);
+  }, [forgetReport, messages, isRunning, setMessages, setIsHomeView]);
 
-  const rememberTopics = useCallback(async (prompts) => {
-    const normalizedPrompts = (Array.isArray(prompts) ? prompts : [prompts])
-      .map((entry) => (entry || "").trim())
-      .filter(Boolean);
-    if (!normalizedPrompts.length) return;
-    if (!user.email) {
-      setSavedError("Set a user email in Settings to save topics.");
-      return;
-    }
-    try {
-      const created = await Promise.all(
-        normalizedPrompts.map((prompt) =>
-          createSavedTopic(apiBase, user, prompt).catch((error) => {
-            console.error("Failed to save topic", prompt, error);
-            return null;
-          })
-        )
-      );
-      const valid = created.filter(Boolean);
-      if (valid.length) {
-        setSavedTopics((current) => {
-          const existingIds = new Set(current.map((entry) => entry.id));
-          const merged = [
-            ...valid.filter((topic) => !existingIds.has(topic.id)),
-            ...current.filter(
-              (entry) => !valid.some((topic) => topic.prompt === entry.prompt)
-            ),
-          ];
-          return merged.slice(0, MAX_SAVED_TOPICS);
-        });
-      } else {
-        await loadTopics();
-      }
-      setSavedError(null);
-    } catch (error) {
-      setSavedError(error.message || "Failed to save topics.");
-    }
-  }, [apiBase, loadTopics, user]);
-
-  const rememberTopic = useCallback(
-    (prompt) => rememberTopics([prompt]),
-    [rememberTopics]
-  );
-
-  const forgetTopic = useCallback(async (id) => {
-    if (!id) return;
-    if (!user.email) {
-      setSavedTopics((current) => current.filter((entry) => entry.id !== id));
-      return;
-    }
-    try {
-      await deleteSavedTopic(apiBase, user, id);
-      setSavedTopics((current) => current.filter((entry) => entry.id !== id));
-      setSavedError(null);
-    } catch (error) {
-      console.error("Failed to delete topic", error);
-      setSavedError(error.message || "Failed to delete topic.");
-    }
-  }, [apiBase, user]);
-
+  // Generation hook
   const { runTopicPrompt } = useGeneration({
     user,
     modelsPayload,
@@ -276,6 +165,7 @@ function App() {
     isRunning,
   });
 
+  // Explore suggestions
   const {
     exploreSuggestions,
     exploreLoading,
@@ -294,6 +184,7 @@ function App() {
     rememberTopics,
   });
 
+  // Topic view
   const {
     topicViewTopic,
     topicViewDraft,
@@ -333,46 +224,20 @@ function App() {
     runTopicPrompt,
   });
 
-  const handleReportOpen = useCallback(
-    (reportPayload) => {
-      if (!reportPayload) return;
-      const content = reportPayload.content || reportPayload.reportText || "";
-      const title =
-        (reportPayload.title || reportPayload.reportTitle || reportPayload.topic || "Explorer Report").trim() ||
-        "Explorer Report";
-      const topic =
-        (reportPayload.topic || reportPayload.reportTopic || title).trim() || "Explorer Report";
-      const preview = reportPayload.preview || summarizeReport(content || "") || topic;
-      setActiveReport({
-        id: reportPayload.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        title,
-        topic,
-        preview,
-        content,
-        outline: reportPayload.outline || reportPayload.sections?.outline || null,
-        sections: reportPayload.sections || null,
-      });
-      closeTopicView();
-      setIsHomeView(false);
-    },
-    [closeTopicView]
-  );
+  // Handle report open (with topic view close)
+  const handleReportOpen = useCallback((reportPayload) => {
+    closeTopicView();
+    baseHandleReportOpen(reportPayload);
+  }, [closeTopicView, baseHandleReportOpen]);
 
-  const handleReportClose = useCallback(() => {
-    setActiveReport(null);
-  }, []);
-
+  // Handle open topic
   const handleOpenTopic = useCallback((topic, options = {}) => {
-    const normalized = options.normalizeHeading
-      ? cleanHeadingForTopic(topic)
-      : (topic || "");
-    const safeTopic = (normalized || "").trim();
+    const safeTopic = normalizeTopicForOpen(topic, options);
     if (!safeTopic) return;
-    setActiveReport(null);
     openTopicView(safeTopic, { pauseSuggestions: Boolean(options.pauseSuggestions) });
-    setIsHomeView(false);
-  }, [openTopicView]);
+  }, [normalizeTopicForOpen, openTopicView]);
 
+  // Outline form
   const {
     outlineTopic,
     setOutlineTopic,
@@ -407,133 +272,114 @@ function App() {
         user_email: user.email || undefined,
         username: user.username || undefined,
       };
-      const wasSuccessful = await runReportFlow(
-        payloadWithUser,
-        assistantId,
-        topicText
-      );
+      const wasSuccessful = await runReportFlow(payloadWithUser, assistantId, topicText);
       setIsRunning(false);
       if (wasSuccessful) {
         resetOutlineForm();
       }
-    }
+    },
   });
 
-  const handleTopicSubmit = useCallback(
-    async (event) => {
-      event.preventDefault();
-      const prompt = composerValue.trim();
-      if (!prompt || isRunning) return;
-      setComposerValue("");
-      setIsHomeView(false);
-      const avoid = chatAvoidTopics.split(",").map(s => s.trim()).filter(Boolean);
-      const include = chatIncludeTopics.split(",").map(s => s.trim()).filter(Boolean);
-      await runTopicPrompt(prompt, { avoid, include });
-      setChatAvoidTopics("");
-      setChatIncludeTopics("");
-    },
-    [composerValue, isRunning, runTopicPrompt, chatAvoidTopics, chatIncludeTopics]
-  );
+  // Topic submit handler
+  const handleTopicSubmit = useCallback(async (event) => {
+    event.preventDefault();
+    const prompt = composerValue.trim();
+    if (!prompt || isRunning) return;
+    setComposerValue('');
+    setIsHomeView(false);
+    const avoid = chatAvoidTopics.split(',').map((s) => s.trim()).filter(Boolean);
+    const include = chatIncludeTopics.split(',').map((s) => s.trim()).filter(Boolean);
+    await runTopicPrompt(prompt, { avoid, include });
+    setChatAvoidTopics('');
+    setChatIncludeTopics('');
+  }, [composerValue, isRunning, runTopicPrompt, chatAvoidTopics, chatIncludeTopics, setComposerValue, setIsHomeView, setChatAvoidTopics, setChatIncludeTopics]);
 
-  const handleTopicViewBarSubmit = useCallback(
-    (event) => {
-      event.preventDefault();
-      const normalized = topicViewBarValue.trim();
-      if (!normalized) return;
-      handleOpenTopic(normalized);
-      setTopicViewBarValue("");
-    },
-    [handleOpenTopic, topicViewBarValue]
-  );
+  // Topic view bar submit handler
+  const handleTopicViewBarSubmit = useCallback((event) => {
+    event.preventDefault();
+    const normalized = topicViewBarValue.trim();
+    if (!normalized) return;
+    handleOpenTopic(normalized);
+    setTopicViewBarValue('');
+  }, [handleOpenTopic, topicViewBarValue, setTopicViewBarValue]);
 
-  const handleTopicRecall = useCallback(
-    (topic) => {
-      handleOpenTopic(topic);
-    },
-    [handleOpenTopic]
-  );
+  // Topic recall handler
+  const handleTopicRecall = useCallback((topic) => {
+    handleOpenTopic(topic);
+  }, [handleOpenTopic]);
 
-  const composerButtonLabel = isRunning ? "Stop" : "Generate Report";
-  const outlineSubmitLabel = isRunning ? "Working…" : "Generate report";
+  // Reset handler
+  const handleReset = useCallback(() => {
+    closeTopicView();
+    resetToHome(isRunning ? null : () => setMessages([]));
+  }, [closeTopicView, resetToHome, isRunning, setMessages]);
+
+  // Generating report select handler
+  const handleGeneratingReportSelect = useCallback(() => {
+    setActiveReport(null);
+    closeTopicView();
+    setIsHomeView(false);
+  }, [closeTopicView, setActiveReport, setIsHomeView]);
+
+  // Computed values
+  const composerButtonLabel = isRunning ? 'Stop' : 'Generate Report';
+  const outlineSubmitLabel = isRunning ? 'Working…' : 'Generate report';
+  const presetLabel = MODEL_PRESET_LABELS[selectedPreset] || selectedPreset;
 
   const normalizedOutlineTopic = outlineTopic.trim();
-  const lineModeValidity = outlineSections.every((section) => {
-    const title = section.title.trim();
-    return Boolean(title);
-  });
+  const lineModeValidity = outlineSections.every((section) => section.title.trim());
   const isLineModeValid = Boolean(normalizedOutlineTopic && lineModeValidity);
+
   const trimmedJsonInput = outlineJsonInput.trim();
-  let jsonValidationError = "";
-  if (outlineInputMode === "json" && trimmedJsonInput) {
+  let jsonValidationError = '';
+  if (outlineInputMode === 'json' && trimmedJsonInput) {
     try {
       const parsed = JSON.parse(trimmedJsonInput);
-      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.sections)) {
-        jsonValidationError = "JSON outline must contain a sections array.";
+      if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.sections)) {
+        jsonValidationError = 'JSON outline must contain a sections array.';
       } else if (
         !parsed.sections.length ||
         !parsed.sections.every(
           (section) =>
             section &&
-            typeof section.title === "string" &&
+            typeof section.title === 'string' &&
             section.title.trim() &&
             Array.isArray(section.subsections)
         )
       ) {
-        jsonValidationError = "Each JSON section needs a title.";
+        jsonValidationError = 'Each JSON section needs a title.';
       }
     } catch (error) {
-      jsonValidationError = error.message || "Enter valid JSON.";
+      jsonValidationError = error.message || 'Enter valid JSON.';
     }
   }
-  const isJsonModeValid = Boolean(
-    normalizedOutlineTopic && trimmedJsonInput && !jsonValidationError
-  );
-  const isOutlineFormValid = outlineInputMode === "lines" ? isLineModeValid : isJsonModeValid;
+
+  const isJsonModeValid = Boolean(normalizedOutlineTopic && trimmedJsonInput && !jsonValidationError);
+  const isOutlineFormValid = outlineInputMode === 'lines' ? isLineModeValid : isJsonModeValid;
 
   const hasMessages = messages.length > 0;
   const isTopicViewOpen = Boolean(topicViewTopic);
-  const isReportViewOpen = Boolean(activeReport);
+
   const isTopicSaved = useMemo(
     () => savedTopics.some((entry) => entry.prompt === topicViewTopic),
     [savedTopics, topicViewTopic]
   );
+
   const hasCompletedReport = useMemo(
-    () => messages.some((message) => message.role === "assistant" && Boolean(message.reportText)),
+    () => messages.some((message) => message.role === 'assistant' && Boolean(message.reportText)),
     [messages]
   );
+
   const shouldShowExplore = isHomeView || (!isTopicViewOpen && !isReportViewOpen && !hasMessages);
-  const presetLabel = MODEL_PRESET_LABELS[selectedPreset] || selectedPreset;
-
-  const chatPaneClasses = ["chat-pane"];
-  if (isHomeView || (!hasMessages && !isTopicViewOpen && !isReportViewOpen)) {
-    chatPaneClasses.push("chat-pane--empty");
-  }
-  if (isTopicViewOpen || isReportViewOpen) {
-    chatPaneClasses.push("chat-pane--topic-view");
-  }
-  const chatPaneClassName = chatPaneClasses.join(" ");
-
-  useEffect(() => {
-    if (isRunning || isTopicViewOpen || isReportViewOpen || isHomeView) return;
-    if (messages.length === 0) {
-      setIsHomeView(true);
-      setMode("topic");
-    }
-  }, [isRunning, isTopicViewOpen, isReportViewOpen, isHomeView, messages.length, setMode]);
 
   const generatingReport = useMemo(() => {
-    // If running, we definitely have an active session.
-    // If NOT running, but we have messages and are in home view, we have a "backgrounded" session.
     if (!isRunning && (!hasMessages || !isHomeView)) return null;
-
-    const assistantMsg = [...messages].reverse().find((m) => m.role === "assistant" && m.reportTopic);
+    const assistantMsg = [...messages].reverse().find((m) => m.role === 'assistant' && m.reportTopic);
     if (assistantMsg) {
-      // If the report is already saved and we are not running, don't show it as an active session
-      const isSaved = savedReports.some(r => r.topic === assistantMsg.reportTopic);
+      const isSaved = savedReports.some((r) => r.topic === assistantMsg.reportTopic);
       if (isSaved && !isRunning) return null;
-
       return {
-        id: "generating",
+        id: 'generating',
         topic: assistantMsg.reportTopic,
         title: assistantMsg.reportTopic,
         isGenerating: isRunning,
@@ -542,11 +388,27 @@ function App() {
     return null;
   }, [isRunning, messages, hasMessages, isHomeView, savedReports]);
 
-  const handleGeneratingReportSelect = useCallback(() => {
-    setActiveReport(null);
-    closeTopicView();
-    setIsHomeView(false);
-  }, [closeTopicView]);
+  // Chat pane classes
+  const chatPaneClasses = ['chat-pane'];
+  if (isHomeView || (!hasMessages && !isTopicViewOpen && !isReportViewOpen)) {
+    chatPaneClasses.push('chat-pane--empty');
+  }
+  if (isTopicViewOpen || isReportViewOpen) {
+    chatPaneClasses.push('chat-pane--topic-view');
+  }
+  const chatPaneClassName = chatPaneClasses.join(' ');
+
+  // Auto-show home when empty
+  useEffect(() => {
+    if (isRunning || isTopicViewOpen || isReportViewOpen || isHomeView) return;
+    if (messages.length === 0) {
+      setIsHomeView(true);
+      setMode('topic');
+    }
+  }, [isRunning, isTopicViewOpen, isReportViewOpen, isHomeView, messages.length, setMode, setIsHomeView]);
+
+  // Feature flag for collections (enable for users with email set)
+  const useCollectionsFeature = Boolean(user?.email);
 
   return (
     <div className="page">
@@ -557,23 +419,32 @@ function App() {
         onGeneratingReportSelect={handleGeneratingReportSelect}
         handleTopicRecall={handleTopicRecall}
         handleTopicRemove={forgetTopic}
-        handleReportRemove={forgetReport}
+        handleReportRemove={handleForgetReport}
         topicViewBarValue={topicViewBarValue}
         setTopicViewBarValue={setTopicViewBarValue}
         handleTopicViewBarSubmit={handleTopicViewBarSubmit}
         onOpenSettings={handleOpenSettings}
         onReportSelect={handleReportOpen}
-        onResetExplore={() => {
-          closeTopicView();
-          setActiveReport(null);
-          if (!isRunning) {
-            setMessages([]);
-          }
-          setIsHomeView(true);
-          setMode("topic");
-        }}
-        isSyncing={isSyncingSaved}
+        onResetExplore={handleReset}
+        isSyncing={isSyncingSaved || isLoadingCollections}
         savedError={savedError}
+        // Collections props
+        useCollections={useCollectionsFeature}
+        collections={collections}
+        expandedCollections={expandedCollections}
+        isCreatingCollection={isCreatingCollection}
+        newCollectionName={newCollectionName}
+        editingCollectionId={editingCollectionId}
+        onToggleCollectionExpanded={toggleCollectionExpanded}
+        onCreateCollection={handleCreateCollection}
+        onUpdateCollection={handleUpdateCollection}
+        onDeleteCollection={handleDeleteCollection}
+        onStartCreatingCollection={startCreatingCollection}
+        onCancelCreatingCollection={cancelCreatingCollection}
+        onStartEditingCollection={startEditingCollection}
+        onCancelEditingCollection={cancelEditingCollection}
+        onNewCollectionNameChange={setNewCollectionName}
+        onMoveTopicToCollection={handleMoveTopicToCollection}
       />
       <main className={chatPaneClassName}>
         {shouldShowExplore && (
@@ -646,15 +517,7 @@ function App() {
             mode={mode}
             setMode={setMode}
             isRunning={isRunning}
-            onReset={() => {
-              closeTopicView();
-              setActiveReport(null);
-              if (!isRunning) {
-                setMessages([]);
-              }
-              setIsHomeView(true);
-              setMode("topic");
-            }}
+            onReset={handleReset}
             composerValue={composerValue}
             setComposerValue={setComposerValue}
             handleTopicSubmit={handleTopicSubmit}

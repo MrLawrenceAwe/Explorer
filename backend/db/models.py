@@ -131,6 +131,45 @@ class User(Base, TimestampMixin):
         back_populates="owner",
         passive_deletes=True,
     )
+    topic_collections: Mapped[List["TopicCollection"]] = relationship(
+        back_populates="owner",
+        passive_deletes=True,
+    )
+
+
+class TopicCollection(Base, TimestampMixin, SoftDeleteMixin):
+    """Collection/folder for grouping saved topics."""
+
+    __tablename__ = "topic_collections"
+    __table_args__ = (
+        UniqueConstraint("owner_user_id", "name", name="uq_topic_collections_owner_name"),
+        Index("ix_topic_collections_owner", "owner_user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        GUID(),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        GUID(),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    owner: Mapped[Optional["User"]] = relationship(
+        back_populates="topic_collections",
+        passive_deletes=True,
+    )
+    topics: Mapped[List["SavedTopic"]] = relationship(
+        back_populates="collection",
+        passive_deletes=True,
+    )
 
 
 class SavedTopic(Base, TimestampMixin, SoftDeleteMixin):
@@ -140,6 +179,7 @@ class SavedTopic(Base, TimestampMixin, SoftDeleteMixin):
     __table_args__ = (
         UniqueConstraint("slug", name="uq_saved_topics_slug"),
         Index("ix_saved_topics_owner", "owner_user_id"),
+        Index("ix_saved_topics_collection", "collection_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -154,9 +194,18 @@ class SavedTopic(Base, TimestampMixin, SoftDeleteMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
+    collection_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        GUID(),
+        ForeignKey("topic_collections.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     owner: Mapped[Optional[User]] = relationship(
         back_populates="saved_topics",
+        passive_deletes=True,
+    )
+    collection: Mapped[Optional[TopicCollection]] = relationship(
+        back_populates="topics",
         passive_deletes=True,
     )
     reports: Mapped[List["Report"]] = relationship(
@@ -252,6 +301,7 @@ __all__ = [
     "SavedTopic",
     "SoftDeleteMixin",
     "TimestampMixin",
+    "TopicCollection",
     "User",
     "UserStatus",
 ]

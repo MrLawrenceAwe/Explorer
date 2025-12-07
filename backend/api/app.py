@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routers import reports, suggestions, topics
+from backend.api.routers import collections, reports, suggestions, topics
 
 app = FastAPI(title="Explorer", version="2.0.0")
 
@@ -21,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(collections.router)
 app.include_router(reports.router)
 app.include_router(suggestions.router)
 app.include_router(topics.router)

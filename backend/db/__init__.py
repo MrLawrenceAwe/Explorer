@@ -10,6 +10,7 @@ from .models import (
     Report,
     ReportStatus,
     SavedTopic,
+    TopicCollection,
     User,
     UserStatus,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "Report",
     "ReportStatus",
     "SavedTopic",
+    "TopicCollection",
     "User",
     "UserStatus",
     "create_engine_from_url",

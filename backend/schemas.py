@@ -179,15 +179,47 @@ class SuggestionsResponse(BaseModel):
     suggestions: List[SuggestionItem] = Field(default_factory=list)
 
 
+class TopicCollectionResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    position: int = 0
+    topic_count: int = 0
+    created_at: str
+
+
+class CreateTopicCollectionRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+
+
+class UpdateTopicCollectionRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    position: Optional[int] = None
+
+
 class SavedTopicResponse(BaseModel):
     id: uuid.UUID
     title: str
     slug: str
+    collection_id: Optional[uuid.UUID] = None
     created_at: str
 
 
 class CreateSavedTopicRequest(BaseModel):
     title: str
+    collection_id: Optional[uuid.UUID] = None
+
+
+class UpdateSavedTopicRequest(BaseModel):
+    collection_id: Optional[uuid.UUID] = None
 
 
 class ReportResponse(BaseModel):

@@ -1,4 +1,5 @@
 import React from 'react';
+import { CollectionsList } from './CollectionsList';
 import { SavedTopicsList } from './SavedTopicsList';
 import { ReportsList } from './ReportsList';
 import { GenerationBar } from './GenerationBar';
@@ -19,6 +20,23 @@ export function Sidebar({
     savedError,
     generatingReport,
     onGeneratingReportSelect,
+    // Collections props
+    collections = [],
+    expandedCollections = new Set(),
+    isCreatingCollection = false,
+    newCollectionName = '',
+    editingCollectionId = null,
+    onToggleCollectionExpanded,
+    onCreateCollection,
+    onUpdateCollection,
+    onDeleteCollection,
+    onStartCreatingCollection,
+    onCancelCreatingCollection,
+    onStartEditingCollection,
+    onCancelEditingCollection,
+    onNewCollectionNameChange,
+    onMoveTopicToCollection,
+    useCollections = false,
 }) {
     return (
         <aside className="sidebar" aria-label="Saved prompts and generated reports">
@@ -47,11 +65,34 @@ export function Sidebar({
                 handleTopicViewBarSubmit={handleTopicViewBarSubmit}
             />
             <div className="sidebar__content">
-                <SavedTopicsList
-                    savedTopics={savedTopics}
-                    handleTopicRecall={handleTopicRecall}
-                    handleTopicRemove={handleTopicRemove}
-                />
+                {useCollections ? (
+                    <CollectionsList
+                        collections={collections}
+                        savedTopics={savedTopics}
+                        expandedCollections={expandedCollections}
+                        isCreating={isCreatingCollection}
+                        newCollectionName={newCollectionName}
+                        editingCollectionId={editingCollectionId}
+                        onToggleExpanded={onToggleCollectionExpanded}
+                        onCreateCollection={onCreateCollection}
+                        onUpdateCollection={onUpdateCollection}
+                        onDeleteCollection={onDeleteCollection}
+                        onStartCreating={onStartCreatingCollection}
+                        onCancelCreating={onCancelCreatingCollection}
+                        onStartEditing={onStartEditingCollection}
+                        onCancelEditing={onCancelEditingCollection}
+                        onNewCollectionNameChange={onNewCollectionNameChange}
+                        onTopicRecall={handleTopicRecall}
+                        onTopicRemove={handleTopicRemove}
+                        onMoveTopicToCollection={onMoveTopicToCollection}
+                    />
+                ) : (
+                    <SavedTopicsList
+                        savedTopics={savedTopics}
+                        handleTopicRecall={handleTopicRecall}
+                        handleTopicRemove={handleTopicRemove}
+                    />
+                )}
                 <ReportsList
                     savedReports={savedReports}
                     generatingReport={generatingReport}
@@ -63,3 +104,4 @@ export function Sidebar({
         </aside>
     );
 }
+

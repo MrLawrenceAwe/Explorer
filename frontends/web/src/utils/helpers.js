@@ -1,8 +1,9 @@
 export const STORAGE_KEY = "explorer-api-base";
 export const SAVED_TOPICS_KEY = "explorer-saved-topics";
 export const SAVED_REPORTS_KEY = "explorer-saved-reports";
+export const COLLECTIONS_STORAGE_KEY = "explorer-collections";
 export const DEFAULT_API_BASE = window.location.origin;
-export const MAX_SAVED_TOPICS = 8;
+export const MAX_SAVED_TOPICS = 50;
 export const MAX_SAVED_REPORTS = 6;
 export const TOPIC_VIEW_BAR_INPUT_ID = "sidebar-topic-view-bar";
 export const MODEL_PRESET_STORAGE_KEY = "explorer-model-presets";
@@ -338,19 +339,24 @@ export async function fetchSavedTopics(apiBase, user, { signal } = {}) {
     return data.map((topic) => ({
         id: topic.id,
         prompt: topic.title,
+        collectionId: topic.collection_id || null,
     }));
 }
 
-export async function createSavedTopic(apiBase, user, title) {
+export async function createSavedTopic(apiBase, user, title, collectionId = null) {
     const query = buildUserQuery(user);
     const normalizedTitle = (title || "").trim();
     if (!normalizedTitle) {
         throw new Error("Title is required to save a topic.");
     }
+    const body = { title: normalizedTitle };
+    if (collectionId) {
+        body.collection_id = collectionId;
+    }
     const response = await fetch(`${apiBase}/saved_topics?${query}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: normalizedTitle }),
+        body: JSON.stringify(body),
     });
     if (!response.ok) {
         throw new Error(`Failed to save topic (${response.status}).`);
@@ -359,6 +365,29 @@ export async function createSavedTopic(apiBase, user, title) {
     return {
         id: topic.id,
         prompt: topic.title,
+        collectionId: topic.collection_id || null,
+    };
+}
+
+export async function updateSavedTopic(apiBase, user, topicId, { collectionId } = {}) {
+    const query = buildUserQuery(user);
+    const body = {};
+    if (collectionId !== undefined) {
+        body.collection_id = collectionId;
+    }
+    const response = await fetch(`${apiBase}/saved_topics/${topicId}?${query}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to update topic (${response.status}).`);
+    }
+    const topic = await response.json();
+    return {
+        id: topic.id,
+        prompt: topic.title,
+        collectionId: topic.collection_id || null,
     };
 }
 
@@ -450,4 +479,99 @@ export async function copyTextToClipboard(text) {
     }
 
     return true;
+}
+
+// ============================================================================
+// Collection API Functions
+// ============================================================================
+
+export async function fetchCollections(apiBase, user, { signal } = {}) {
+    const query = buildUserQuery(user);
+    const response = await fetch(`${apiBase}/collections?${query}`, { signal });
+    if (!response.ok) {
+        throw new Error(`Failed to load collections (${response.status}).`);
+    }
+    const data = await response.json();
+    if (!Array.isArray(data)) return [];
+    return data.map((collection) => ({
+        id: collection.id,
+        name: collection.name,
+        description: collection.description || null,
+        color: collection.color || null,
+        icon: collection.icon || null,
+        position: collection.position || 0,
+        topicCount: collection.topic_count || 0,
+    }));
+}
+
+export async function createCollection(apiBase, user, { name, description, color, icon } = {}) {
+    const query = buildUserQuery(user);
+    const normalizedName = (name || "").trim();
+    if (!normalizedName) {
+        throw new Error("Collection name is required.");
+    }
+    const body = { name: normalizedName };
+    if (description) body.description = description.trim();
+    if (color) body.color = color.trim();
+    if (icon) body.icon = icon.trim();
+
+    const response = await fetch(`${apiBase}/collections?${query}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to create collection (${response.status}).`);
+    }
+    const collection = await response.json();
+    return {
+        id: collection.id,
+        name: collection.name,
+        description: collection.description || null,
+        color: collection.color || null,
+        icon: collection.icon || null,
+        position: collection.position || 0,
+        topicCount: collection.topic_count || 0,
+    };
+}
+
+export async function updateCollection(apiBase, user, collectionId, updates = {}) {
+    const query = buildUserQuery(user);
+    const body = {};
+    if (updates.name !== undefined) body.name = updates.name;
+    if (updates.description !== undefined) body.description = updates.description;
+    if (updates.color !== undefined) body.color = updates.color;
+    if (updates.icon !== undefined) body.icon = updates.icon;
+    if (updates.position !== undefined) body.position = updates.position;
+
+    const response = await fetch(`${apiBase}/collections/${collectionId}?${query}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to update collection (${response.status}).`);
+    }
+    const collection = await response.json();
+    return {
+        id: collection.id,
+        name: collection.name,
+        description: collection.description || null,
+        color: collection.color || null,
+        icon: collection.icon || null,
+        position: collection.position || 0,
+        topicCount: collection.topic_count || 0,
+    };
+}
+
+export async function deleteCollection(apiBase, user, collectionId) {
+    const query = buildUserQuery(user);
+    const response = await fetch(`${apiBase}/collections/${collectionId}?${query}`, {
+        method: "DELETE",
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to delete collection (${response.status}).`);
+    }
 }
