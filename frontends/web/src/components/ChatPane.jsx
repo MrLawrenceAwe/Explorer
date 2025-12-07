@@ -93,7 +93,7 @@ export function ChatPane({
             ) : composerLocked ? (
                 <div className="composer-locked">
                     <p className="composer-locked__text">
-                        Report generated. Return home to start a new one.
+                        Report generated. Return home to to generate a new report.
                     </p>
                     <button
                         type="button"
