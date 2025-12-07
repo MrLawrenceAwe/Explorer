@@ -497,6 +497,10 @@ function App() {
     () => savedTopics.some((entry) => entry.prompt === topicViewTopic),
     [savedTopics, topicViewTopic]
   );
+  const hasCompletedReport = useMemo(
+    () => messages.some((message) => message.role === "assistant" && Boolean(message.reportText)),
+    [messages]
+  );
   const shouldShowExplore = isHomeView || (!isTopicViewOpen && !isReportViewOpen && !hasMessages);
   const presetLabel = MODEL_PRESET_LABELS[selectedPreset] || selectedPreset;
 
@@ -694,6 +698,7 @@ function App() {
             selectedPreset={selectedPreset}
             onPresetSelect={handlePresetSelect}
             hideComposer={!isHomeView && isRunning}
+            composerLocked={!isHomeView && !isRunning && hasCompletedReport}
             onViewReport={handleReportOpen}
             avoidTopics={chatAvoidTopics}
             setAvoidTopics={setChatAvoidTopics}

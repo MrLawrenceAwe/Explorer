@@ -28,6 +28,7 @@ export function ChatPane({
     onPresetSelect,
     presetLabel,
     hideComposer = false,
+    composerLocked = false,
     onViewReport,
     avoidTopics,
     setAvoidTopics,
@@ -47,6 +48,7 @@ export function ChatPane({
     }, [messages]);
 
     const hasMessages = messages.length > 0;
+    const showStopOnly = hideComposer && isRunning;
 
     return (
         <>
@@ -77,7 +79,7 @@ export function ChatPane({
                     <div ref={chatEndRef} />
                 </section>
             )}
-            {hideComposer ? (
+            {showStopOnly ? (
                 <div className="composer-stop-only">
                     <button
                         type="button"
@@ -86,6 +88,19 @@ export function ChatPane({
                         aria-label="Stop generation"
                     >
                         <span aria-hidden="true" />
+                    </button>
+                </div>
+            ) : composerLocked ? (
+                <div className="composer-locked">
+                    <p className="composer-locked__text">
+                        Report generated. Return home to start a new one.
+                    </p>
+                    <button
+                        type="button"
+                        className="composer-locked__button"
+                        onClick={onReset}
+                    >
+                        New report
                     </button>
                 </div>
             ) : mode === "topic" ? (
