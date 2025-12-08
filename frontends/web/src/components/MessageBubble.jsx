@@ -1,5 +1,5 @@
 import React from 'react';
-import { downloadTextFile } from '../utils/helpers';
+import { downloadTextFile } from '../utils/text';
 
 export function MessageBubble({ message, onViewReport }) {
     const handleViewReport = () => {

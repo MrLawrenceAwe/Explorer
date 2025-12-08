@@ -5,7 +5,7 @@ import {
     updateCollection,
     deleteCollection,
     updateSavedTopic,
-} from '../utils/helpers';
+} from '../utils/apiClient';
 
 /** Hook for managing topic collections (folders). */
 export function useCollections({

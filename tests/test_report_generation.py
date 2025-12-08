@@ -55,13 +55,13 @@ class NoopReportStore:
             owner_user_id=uuid.uuid4(),
             report_dir=base_dir,
             outline_path=base_dir / "noop-outline.json",
-            narrative_path=base_dir / "noop-report.md",
+            transcript_path=base_dir / "noop-report.md",
         )
 
     def prepare_report(self, request, outline):
         return self._handle
 
-    def finalize_report(self, handle, narration, written_sections, summary=None):
+    def finalize_report(self, handle, transcript, written_sections, summary=None):
         return None
 
     def discard_report(self, handle):

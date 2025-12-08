@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { cleanHeadingForTopic, copyTextToClipboard, downloadTextFile } from '../utils/helpers';
+import { cleanHeadingForTopic, copyTextToClipboard, downloadTextFile } from '../utils/text';
 
 function normalizeOutlineSections(outlineCandidate) {
     const sections = Array.isArray(outlineCandidate?.sections)

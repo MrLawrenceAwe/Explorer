@@ -1,5 +1,5 @@
 import React from 'react';
-import { TOPIC_VIEW_BAR_INPUT_ID } from '../utils/helpers';
+import { TOPIC_VIEW_BAR_INPUT_ID } from '../utils/constants';
 
 export function GenerationBar({
     topicViewBarValue,

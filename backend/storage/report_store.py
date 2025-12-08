@@ -47,7 +47,7 @@ class StoredReportHandle:
     owner_user_id: uuid.UUID
     report_dir: Path
     outline_path: Path
-    narrative_path: Path
+    transcript_path: Path
 
 
 class GeneratedReportStore:
@@ -124,15 +124,15 @@ class GeneratedReportStore:
     def finalize_report(
         self,
         handle: StoredReportHandle,
-        narration: str,
+        transcript: str,
         written_sections: Iterable[Dict[str, Any]],
         summary: Optional[str] = None,
     ) -> None:
-        """Persist the final narration and update DB metadata."""
+        """Persist the final transcript and update DB metadata."""
 
-        text = narration.strip() + "\n"
-        handle.narrative_path.parent.mkdir(parents=True, exist_ok=True)
-        handle.narrative_path.write_text(text, encoding="utf-8")
+        text = transcript.strip() + "\n"
+        handle.transcript_path.parent.mkdir(parents=True, exist_ok=True)
+        handle.transcript_path.write_text(text, encoding="utf-8")
         sections_payload = list(written_sections)
         with session_scope(self._session_factory) as session:
             report = session.get(Report, handle.report_id)
@@ -142,7 +142,7 @@ class GeneratedReportStore:
             if summary:
                 report.summary = summary
             report.sections = {"outline": report.outline_snapshot, "written": sections_payload}
-            report.content_uri = self._relative_uri(handle.narrative_path)
+            report.content_uri = self._relative_uri(handle.transcript_path)
             report.generated_completed_at = datetime.now(timezone.utc)
 
     def discard_report(self, handle: StoredReportHandle) -> None:
@@ -255,7 +255,7 @@ class GeneratedReportStore:
             owner_user_id=owner_user_id,
             report_dir=report_dir,
             outline_path=report_dir / "outline.json",
-            narrative_path=report_dir / "report.md",
+            transcript_path=report_dir / "report.md",
         )
 
     def _write_outline_snapshot(self, handle: StoredReportHandle, outline: Outline) -> None:

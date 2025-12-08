@@ -84,9 +84,6 @@ class _ReportStreamRunner:
         self.service = service
         self.request = request
         self.report_store = service.report_store
-        self.__post_init__()
-
-    def __post_init__(self) -> None:
         models = self.request.models
         self.outline_spec = models.get("outline", ModelSpec(model=DEFAULT_TEXT_MODEL))
         self.writer_spec = models.get("writer", ModelSpec(model=DEFAULT_TEXT_MODEL))
@@ -104,16 +101,19 @@ class _ReportStreamRunner:
             ),
         )
         self._encountered_error = False
-        self._assembled_narration: Optional[str] = None
+        self._assembled_transcript: Optional[str] = None
         self._storage_handle: Optional[StoredReportHandle] = None
         self._written_sections: List[WrittenSection] = []
+        self._resolved_outline: Optional[Outline] = None
+
+    async def _emit_status_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        async with self.service._emit_status(payload) as status:
+            return status
 
     async def run(self) -> AsyncGenerator[Dict[str, Any], None]:
         try:
-            async with self.service._emit_status({"status": "started"}) as status:
-                yield status
+            yield await self._emit_status_once({"status": "started"})
 
-            self._resolved_outline: Optional[Outline] = None
             async for status in self._outline_phase():
                 yield status
             outline = self._resolved_outline
@@ -122,15 +122,13 @@ class _ReportStreamRunner:
 
             storage_status = self._prepare_storage(outline)
             if storage_status:
-                async with self.service._emit_status(storage_status) as status:
-                    yield status
+                yield await self._emit_status_once(storage_status)
 
             numbered_sections = self.service._build_numbered_sections(outline)
             all_section_headers = [entry.title for entry in numbered_sections]
 
             begin_status = self._build_begin_sections_status(outline)
-            async with self.service._emit_status(begin_status) as status:
-                yield status
+            yield await self._emit_status_once(begin_status)
 
             async for status in self._write_sections(
                 outline, numbered_sections, all_section_headers
@@ -141,18 +139,16 @@ class _ReportStreamRunner:
                 self._mark_storage_failed("Report generation aborted before completion.")
                 return
 
-            assembled_narration = self._assembled_narration or ""
+            assembled_transcript = self._assembled_transcript or ""
 
-            finalize_error = self._finalize_report_persistence(assembled_narration)
+            finalize_error = self._finalize_report_persistence(assembled_transcript)
             if finalize_error:
-                async with self.service._emit_status(finalize_error) as status:
-                    yield status
+                yield await self._emit_status_once(finalize_error)
                 return
 
-            final_payload = self._build_final_payload(outline, assembled_narration)
+            final_payload = self._build_final_payload(outline, assembled_transcript)
 
-            async with self.service._emit_status(final_payload) as status:
-                yield status
+            yield await self._emit_status_once(final_payload)
         except asyncio.CancelledError:
             self._mark_storage_failed("Report generation cancelled")
             raise
@@ -165,8 +161,7 @@ class _ReportStreamRunner:
                 "model": self.outline_spec.model,
             }
             maybe_add_reasoning(outline_status, "reasoning_effort", self.outline_spec)
-            async with self.service._emit_status(outline_status) as status:
-                yield status
+            yield await self._emit_status_once(outline_status)
 
             outline_request = self.service.outline_service.build_outline_request(
                 self.request.topic,
@@ -186,8 +181,7 @@ class _ReportStreamRunner:
                     "detail": f"Failed to parse outline JSON: {exception}",
                     "raw_outline": exception.raw_response,
                 }
-                async with self.service._emit_status(error_status) as status:
-                    yield status
+                yield await self._emit_status_once(error_status)
                 return
 
             outline_ready_status: Dict[str, Any] = {
@@ -199,19 +193,17 @@ class _ReportStreamRunner:
             maybe_add_reasoning(
                 outline_ready_status, "reasoning_effort", self.outline_spec
             )
-            async with self.service._emit_status(outline_ready_status) as status:
-                yield status
+            yield await self._emit_status_once(outline_ready_status)
             self._resolved_outline = outline
             return
 
-        async with self.service._emit_status(
+        yield await self._emit_status_once(
             {
                 "status": "using_provided_outline",
                 "sections": len(provided_outline.sections),
                 "outline": provided_outline.model_dump(),
             }
-        ) as status:
-            yield status
+        )
         self._resolved_outline = provided_outline
         return
 
@@ -235,7 +227,7 @@ class _ReportStreamRunner:
             if self._encountered_error:
                 break
 
-        self._assembled_narration = "\n\n".join(assembled_blocks)
+        self._assembled_transcript = "\n\n".join(assembled_blocks)
         return
 
     async def _process_section(
@@ -248,10 +240,9 @@ class _ReportStreamRunner:
         section_title = section.title
         subsection_titles = section.subsections
 
-        async for status in self._emit_status_payload(
+        yield await self._emit_status_once(
             {"status": "writing_section", "section": section_title}
-        ):
-            yield status
+        )
 
         writer_system = "You write high-quality, well-structured prose that continues a report seamlessly."
         report_context = self._build_report_context(
@@ -265,14 +256,56 @@ class _ReportStreamRunner:
             full_report_context=report_context,
         )
 
+        section_text = await self._write_section_text(
+            section_title,
+            writer_system,
+            writer_prompt,
+        )
+        if section_text is None:
+            return
+
+        section_text = enforce_subsection_headings(section_text, subsection_titles)
+
+        yield await self._emit_status_once(
+            {"status": "editing_section", "section": section_title}
+        )
+        narrated, edit_error = await self._edit_section_body(
+            outline.report_title,
+            section_title,
+            section_text,
+        )
+        if edit_error:
+            yield await self._emit_status_once(edit_error)
+            return
+
+        cleaned_transcript = self._finalize_section_body(
+            narrated, subsection_titles
+        )
+        written_section = WrittenSection(
+            title=section_title,
+            body=cleaned_transcript,
+        )
+        self._written_sections.append(written_section)
+
+        assembled_blocks.append(f"{section_title}\n\n{cleaned_transcript}")
+
+        yield await self._emit_status_once(
+            {"status": "section_complete", "section": section_title}
+        )
+
+    async def _write_section_text(
+        self,
+        section_title: str,
+        writer_system: str,
+        writer_prompt: str,
+    ) -> Optional[str]:
         while True:
             try:
-                section_text = await self.service.text_client.call_text_async(
+                return await self.service.text_client.call_text_async(
                     self.writer_state.active,
                     writer_system,
                     writer_prompt,
                 )
-                break
             except BaseException as exception:
                 if isinstance(exception, asyncio.CancelledError) or not isinstance(
                     exception, Exception
@@ -282,53 +315,32 @@ class _ReportStreamRunner:
                     section_title, str(exception)
                 )
                 if fallback_status is None:
-                    async for status in self._emit_stage_error(
+                    error_payload = self._stage_error_payload(
                         section_title, "write", exception
-                    ):
-                        yield status
-                    return
-                async for status in self._emit_status_payload(fallback_status):
-                    yield status
-                continue
+                    )
+                    await self._emit_status_once(error_payload)
+                    return None
+                await self._emit_status_once(fallback_status)
 
-        section_text = enforce_subsection_headings(section_text, subsection_titles)
-
-        async for status in self._emit_status_payload(
-            {"status": "editing_section", "section": section_title}
-        ):
-            yield status
+    async def _edit_section_body(
+        self,
+        report_title: str,
+        section_title: str,
+        section_text: str,
+    ) -> tuple[Optional[str], Optional[Dict[str, Any]]]:
         try:
-            narrated = await self._edit_section(
-                outline.report_title,
+            transcript_text = await self._edit_section(
+                report_title,
                 section_title,
                 section_text,
             )
+            return transcript_text, None
         except BaseException as exception:
             if isinstance(exception, asyncio.CancelledError) or not isinstance(
                 exception, Exception
             ):
                 raise
-            async for status in self._emit_stage_error(
-                section_title, "edit", exception
-            ):
-                yield status
-            return
-
-        cleaned_narration = self._finalize_section_body(
-            narrated, subsection_titles
-        )
-        written_section = WrittenSection(
-            title=section_title,
-            body=cleaned_narration,
-        )
-        self._written_sections.append(written_section)
-
-        assembled_blocks.append(f"{section_title}\n\n{cleaned_narration}")
-
-        async for status in self._emit_status_payload(
-            {"status": "section_complete", "section": section_title}
-        ):
-            yield status
+            return None, self._stage_error_payload(section_title, "edit", exception)
 
     def _build_report_context(
         self,
@@ -373,7 +385,7 @@ class _ReportStreamRunner:
         return {"status": "persistence_ready"}
 
     def _finalize_report_persistence(
-        self, assembled_narration: str
+        self, assembled_transcript: str
     ) -> Optional[Dict[str, Any]]:
         if not self.report_store or not self._storage_handle:
             return None
@@ -383,7 +395,7 @@ class _ReportStreamRunner:
                 for section in self._written_sections
             ]
             self.report_store.finalize_report(
-                self._storage_handle, assembled_narration, section_payload
+                self._storage_handle, assembled_transcript, section_payload
             )
         except Exception as exception:
             self._mark_storage_failed(f"Failed to persist report artifacts: {exception}")
@@ -397,17 +409,17 @@ class _ReportStreamRunner:
 
     @staticmethod
     def _finalize_section_body(
-        narration: str, subsection_titles: List[str]
+        transcript: str, subsection_titles: List[str]
     ) -> str:
-        return enforce_subsection_headings(narration, subsection_titles).strip()
+        return enforce_subsection_headings(transcript, subsection_titles).strip()
 
     def _build_final_payload(
-        self, outline: Outline, assembled_narration: str
+        self, outline: Outline, assembled_transcript: str
     ) -> Dict[str, Any]:
         payload = {
             "status": "complete",
             "report_title": outline.report_title,
-            "report": assembled_narration,
+            "report": assembled_transcript,
         }
         if self.request.return_ == "report_with_outline":
             payload["outline_used"] = outline.model_dump()
@@ -438,25 +450,12 @@ class _ReportStreamRunner:
         self, section_title: str, action: str, exception: Exception
     ) -> Dict[str, Any]:
         self._encountered_error = True
-        self._assembled_narration = None
+        self._assembled_transcript = None
         return {
             "status": "error",
             "section": section_title,
             "detail": f"Failed to {action} section '{section_title}': {exception}",
         }
-
-    async def _emit_status_payload(
-        self, payload: Dict[str, Any]
-    ) -> AsyncGenerator[Dict[str, Any], None]:
-        async with self.service._emit_status(payload) as status:
-            yield status
-
-    async def _emit_stage_error(
-        self, section_title: str, action: str, exception: Exception
-    ) -> AsyncGenerator[Dict[str, Any], None]:
-        payload = self._stage_error_payload(section_title, action, exception)
-        async for status in self._emit_status_payload(payload):
-            yield status
 
     async def _edit_section(
         self,
@@ -464,7 +463,7 @@ class _ReportStreamRunner:
         section_title: str,
         section_text: str,
     ) -> str:
-        editor_system = "You edit prose into clear, audio-friendly narration without losing information."
+        editor_system = "You edit prose into a clear, audio-friendly transcript without losing information."
         editor_prompt = build_section_editor_prompt(
             report_title,
             section_title,

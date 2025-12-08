@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchTopicSuggestions } from '../utils/helpers';
+import { fetchTopicSuggestions } from '../utils/apiClient';
 
 export function useTopicView({
     apiBase,

@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { loadApiBase, loadUserProfile, persistUserProfile, summarizeReport, cleanHeadingForTopic } from '../utils/helpers';
+import { loadApiBase, loadUserProfile, persistUserProfile } from '../utils/storage';
+import { summarizeReport, cleanHeadingForTopic } from '../utils/text';
 
 /**
  * Hook for managing core application state.

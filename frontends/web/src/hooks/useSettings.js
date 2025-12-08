@@ -5,7 +5,7 @@ import {
     loadSuggestionModel,
     normalizeModelPresets,
     buildModelsPayload,
-} from '../utils/helpers';
+} from '../utils/modelPresets';
 
 export function useSettings() {
     const [modelPresets, setModelPresets] = useState(loadModelPresets);

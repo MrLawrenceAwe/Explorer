@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { autoResize } from '../utils/helpers';
+import { autoResize } from '../utils/text';
 import { SectionCountSelector } from './SectionCountSelector';
 import { ModelOverrideToggle } from './ModelOverrideToggle';
 import { ModeToggle } from './ModeToggle';

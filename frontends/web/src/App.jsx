@@ -18,7 +18,7 @@ import { ReportView } from './components/ReportView';
 import { ExploreSuggestions } from './components/ExploreSuggestions';
 import { SettingsModal } from './components/SettingsModal';
 
-import { MODEL_PRESET_LABELS } from './utils/helpers';
+import { MODEL_PRESET_LABELS } from './utils/modelPresets';
 
 function App() {
   // Core app state

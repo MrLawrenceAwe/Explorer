@@ -3,7 +3,7 @@ import {
     createEmptyOutlineSection,
     DEFAULT_OUTLINE_JSON,
     buildOutlineGeneratePayload,
-} from '../utils/helpers';
+} from '../utils/text';
 
 export function buildOutlinePayload({
     topicText,

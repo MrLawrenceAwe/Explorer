@@ -3,7 +3,7 @@ import {
     persistModelPresets,
     persistActiveModelPreset,
     persistSuggestionModel,
-} from '../utils/helpers';
+} from '../utils/modelPresets';
 
 export function usePersistence({
     modelPresets,

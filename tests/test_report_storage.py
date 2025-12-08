@@ -44,11 +44,11 @@ def test_generated_report_store_persists_artifacts(tmp_path: Path):
     handle = store.prepare_report(request, outline)
     assert handle.outline_path.exists()
 
-    narration = "Solar Energy Growth\n\n1: Introduction\n\n1.1: Framing\n\nDetailed body."
+    transcript = "Solar Energy Growth\n\n1: Introduction\n\n1.1: Framing\n\nDetailed body."
     sections = [{"title": "1: Introduction", "body": "1.1: Framing"}]
-    store.finalize_report(handle, narration, sections)
+    store.finalize_report(handle, transcript, sections)
 
-    assert handle.narrative_path.read_text(encoding="utf-8").strip().startswith("Solar Energy Growth")
+    assert handle.transcript_path.read_text(encoding="utf-8").strip().startswith("Solar Energy Growth")
 
     with session_scope(session_factory) as session:
         stored = session.get(Report, handle.report_id)

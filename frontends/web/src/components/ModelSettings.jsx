@@ -4,7 +4,7 @@ import {
     MODEL_PRESET_ORDER,
     MODEL_STAGES,
     MODEL_OPTIONS,
-} from '../utils/helpers';
+} from '../utils/modelPresets';
 
 export function ModelSettings({
     defaultPreset,

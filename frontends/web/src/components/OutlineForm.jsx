@@ -1,5 +1,5 @@
 import React from 'react';
-import { OUTLINE_INPUT_MODES } from '../utils/helpers';
+import { OUTLINE_INPUT_MODES } from '../utils/constants';
 import { RefineToggle } from './RefineToggle';
 
 export function OutlineForm({

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MODE_TABS } from '../utils/helpers';
+import { MODE_TABS } from '../utils/constants';
 
 export function ModeToggle({ mode, setMode, isRunning, extraClass = "" }) {
     return (

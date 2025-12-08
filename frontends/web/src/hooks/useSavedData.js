@@ -2,13 +2,15 @@ import { useState, useCallback, useEffect } from 'react';
 import {
     MAX_SAVED_TOPICS,
     MAX_SAVED_REPORTS,
+} from '../utils/constants';
+import {
     fetchSavedTopics,
     createSavedTopic,
     deleteSavedTopic,
     fetchSavedReports,
     deleteSavedReport,
-    summarizeReport,
-} from '../utils/helpers';
+} from '../utils/apiClient';
+import { summarizeReport } from '../utils/text';
 
 /** Hook for managing saved topics and reports. */
 export function useSavedData({ apiBase, user }) {
