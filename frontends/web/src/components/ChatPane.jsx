@@ -1,12 +1,44 @@
 import React, { useEffect, useRef } from 'react';
-import {
-    autoResize,
-} from '../utils/helpers';
+import { autoResize } from '../utils/helpers';
 import { SectionCountSelector } from './SectionCountSelector';
 import { ModelOverrideToggle } from './ModelOverrideToggle';
 import { ModeToggle } from './ModeToggle';
 import { MessageBubble } from './MessageBubble';
 import { RefineToggle } from './RefineToggle';
+
+function ComposerToolbar({
+    mode,
+    setMode,
+    isRunning,
+    stageModels,
+    onStageModelChange,
+    selectedPreset,
+    onPresetSelect,
+    presetLabel,
+    className,
+    modeToggleClassName,
+    idPrefix,
+}) {
+    return (
+        <div className={className}>
+            <ModeToggle
+                mode={mode}
+                setMode={setMode}
+                isRunning={isRunning}
+                extraClass={modeToggleClassName}
+            />
+            <ModelOverrideToggle
+                isRunning={isRunning}
+                stageModels={stageModels}
+                onStageModelChange={onStageModelChange}
+                selectedPreset={selectedPreset}
+                onPresetSelect={onPresetSelect}
+                presetLabel={presetLabel}
+                idPrefix={idPrefix}
+            />
+        </div>
+    );
+}
 
 export function ChatPane({
     messages,
@@ -37,6 +69,13 @@ export function ChatPane({
 }) {
     const chatEndRef = useRef(null);
     const textareaRef = useRef(null);
+    const handleTopicKeyDown = (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleTopicSubmit(event);
+        }
+    };
+
     useEffect(() => {
         if (textareaRef.current) {
             autoResize(textareaRef.current);
@@ -50,36 +89,43 @@ export function ChatPane({
     const hasMessages = messages.length > 0;
     const showStopOnly = hideComposer && isRunning;
 
-    return (
-        <>
-            {hasMessages && (
-                <section className="chat-pane__body" aria-live="polite">
-                    <div className="chat-pane__back-row">
-                        <button
-                            type="button"
-                            className="chat-pane__back"
-                            onClick={onReset}
-                            aria-label="Back to Home"
-                        >
-                            ← Home
-                        </button>
-                    </div>
-                    <ol className="message-list">
-                        {messages.map((message) => (
-                            <li key={message.id} className={`message message--${message.role}`}>
-                                <div className="message__header">
-                                    {message.role === 'user' ? 'REQUEST' : 'REPORT'}
-                                </div>
-                                <div className="message__bubble">
-                                    <MessageBubble message={message} onViewReport={onViewReport} />
-                                </div>
-                            </li>
-                        ))}
-                    </ol>
-                    <div ref={chatEndRef} />
-                </section>
-            )}
-            {showStopOnly ? (
+    const renderChatHistory = () => {
+        if (!hasMessages) {
+            return null;
+        }
+
+        return (
+            <section className="chat-pane__body" aria-live="polite">
+                <div className="chat-pane__back-row">
+                    <button
+                        type="button"
+                        className="chat-pane__back"
+                        onClick={onReset}
+                        aria-label="Back to Home"
+                    >
+                        ← Home
+                    </button>
+                </div>
+                <ol className="message-list">
+                    {messages.map((message) => (
+                        <li key={message.id} className={`message message--${message.role}`}>
+                            <div className="message__header">
+                                {message.role === 'user' ? 'REQUEST' : 'REPORT'}
+                            </div>
+                            <div className="message__bubble">
+                                <MessageBubble message={message} onViewReport={onViewReport} />
+                            </div>
+                        </li>
+                    ))}
+                </ol>
+                <div ref={chatEndRef} />
+            </section>
+        );
+    };
+
+    const renderComposerContent = () => {
+        if (showStopOnly) {
+            return (
                 <div className="composer-stop-only">
                     <button
                         type="button"
@@ -90,10 +136,14 @@ export function ChatPane({
                         <span aria-hidden="true" />
                     </button>
                 </div>
-            ) : composerLocked ? (
+            );
+        }
+
+        if (composerLocked) {
+            return (
                 <div className="composer-locked">
                     <p className="composer-locked__text">
-                        Report generated. Return home to to generate a new report.
+                        Report generated. Return home to generate a new report.
                     </p>
                     <button
                         type="button"
@@ -103,25 +153,25 @@ export function ChatPane({
                         New report
                     </button>
                 </div>
-            ) : mode === "topic" ? (
+            );
+        }
+
+        if (mode === "topic") {
+            return (
                 <div className="composer-lane">
-                    <div className="composer-toolbar">
-                        <ModeToggle
-                            mode={mode}
-                            setMode={setMode}
-                            isRunning={isRunning}
-                            extraClass="mode-toggle--compact"
-                        />
-                        <ModelOverrideToggle
-                            isRunning={isRunning}
-                            stageModels={stageModels}
-                            onStageModelChange={onStageModelChange}
-                            selectedPreset={selectedPreset}
-                            onPresetSelect={onPresetSelect}
-                            presetLabel={presetLabel}
-                            idPrefix="topic"
-                        />
-                    </div>
+                    <ComposerToolbar
+                        mode={mode}
+                        setMode={setMode}
+                        isRunning={isRunning}
+                        stageModels={stageModels}
+                        onStageModelChange={onStageModelChange}
+                        selectedPreset={selectedPreset}
+                        onPresetSelect={onPresetSelect}
+                        presetLabel={presetLabel}
+                        className="composer-toolbar"
+                        modeToggleClassName="mode-toggle--compact"
+                        idPrefix="topic"
+                    />
                     <form
                         className={`composer${isRunning ? " composer--pending" : ""}`}
                         onSubmit={handleTopicSubmit}
@@ -131,12 +181,7 @@ export function ChatPane({
                             rows={1}
                             value={composerValue}
                             onChange={(event) => setComposerValue(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter' && !event.shiftKey) {
-                                    event.preventDefault();
-                                    handleTopicSubmit(event);
-                                }
-                            }}
+                            onKeyDown={handleTopicKeyDown}
                             disabled={isRunning}
                             aria-label="Ask Explorer anything"
                         />
@@ -165,28 +210,33 @@ export function ChatPane({
                         </div>
                     </form>
                 </div>
-            ) : (
-                <div className="outline-pane">
-                    <div className="composer-toolbar composer-toolbar--outline">
-                        <ModeToggle
-                            mode={mode}
-                            setMode={setMode}
-                            isRunning={isRunning}
-                            extraClass="mode-toggle--standalone"
-                        />
-                        <ModelOverrideToggle
-                            isRunning={isRunning}
-                            stageModels={stageModels}
-                            onStageModelChange={onStageModelChange}
-                            selectedPreset={selectedPreset}
-                            onPresetSelect={onPresetSelect}
-                            presetLabel={presetLabel}
-                            idPrefix="outline"
-                        />
-                    </div>
-                    {outlineForm}
-                </div>
-            )}
+            );
+        }
+
+        return (
+            <div className="outline-pane">
+                <ComposerToolbar
+                    mode={mode}
+                    setMode={setMode}
+                    isRunning={isRunning}
+                    stageModels={stageModels}
+                    onStageModelChange={onStageModelChange}
+                    selectedPreset={selectedPreset}
+                    onPresetSelect={onPresetSelect}
+                    presetLabel={presetLabel}
+                    className="composer-toolbar composer-toolbar--outline"
+                    modeToggleClassName="mode-toggle--standalone"
+                    idPrefix="outline"
+                />
+                {outlineForm}
+            </div>
+        );
+    };
+
+    return (
+        <>
+            {renderChatHistory()}
+            {renderComposerContent()}
         </>
     );
 }
