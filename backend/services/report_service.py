@@ -65,16 +65,13 @@ class ReportGeneratorService:
             )
         return numbered_sections
 
-    @staticmethod
-    async def _yield_control() -> None:
-        await asyncio.sleep(0)
+
 
     @asynccontextmanager
     async def _emit_status(
         self, payload: Dict[str, Any]
     ) -> AsyncGenerator[Dict[str, Any], None]:
         yield payload
-        await self._yield_control()
 
 
 class _ReportStreamRunner:

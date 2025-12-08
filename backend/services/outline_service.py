@@ -55,10 +55,10 @@ class OutlineService:
         )
 
     async def handle_outline_request(self, outline_request: OutlineRequest) -> Dict[str, Any]:
-        text = await self._request_outline_text(outline_request)
         if outline_request.format == "json":
-            outline = self._parse_outline(text)
+            outline = await self.generate_outline(outline_request)
             return outline.model_dump()
+        text = await self._request_outline_text(outline_request)
         return {"markdown_outline": text}
 
     async def generate_outline(self, outline_request: OutlineRequest) -> Outline:
