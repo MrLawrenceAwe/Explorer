@@ -10,21 +10,13 @@ import {
     summarizeReport,
 } from '../utils/helpers';
 
-/**
- * Hook for managing saved topics and reports.
- * Consolidates data fetching, CRUD operations, and state management.
- *
- * @param {object} options
- * @param {string} options.apiBase - Base URL for API calls
- * @param {object} options.user - Current user object with email and username
- */
+/** Hook for managing saved topics and reports. */
 export function useSavedData({ apiBase, user }) {
     const [savedTopics, setSavedTopics] = useState([]);
     const [savedReports, setSavedReports] = useState([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [error, setError] = useState(null);
 
-    // Load topics from API
     const loadTopics = useCallback(async () => {
         if (!user?.email) {
             setSavedTopics([]);
@@ -36,7 +28,6 @@ export function useSavedData({ apiBase, user }) {
         return limited;
     }, [apiBase, user]);
 
-    // Load reports from API
     const loadReports = useCallback(async () => {
         if (!user?.email) {
             setSavedReports([]);
@@ -48,7 +39,6 @@ export function useSavedData({ apiBase, user }) {
         return limited;
     }, [apiBase, user]);
 
-    // Refresh all saved data
     const refreshSavedData = useCallback(async () => {
         if (!user?.email) {
             setSavedTopics([]);
@@ -68,12 +58,10 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [loadReports, loadTopics, user?.email]);
 
-    // Initial load effect
     useEffect(() => {
         refreshSavedData();
     }, [refreshSavedData]);
 
-    // Save a report
     const rememberReport = useCallback(async (topic, content, title, outline = null) => {
         const safeContent = content || '';
         const normalizedTitle = (title || topic || 'Explorer Report').trim() || 'Explorer Report';
@@ -115,7 +103,6 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [loadReports, user?.email]);
 
-    // Delete a report
     const forgetReport = useCallback(async (id) => {
         if (!id) return null;
 
@@ -136,7 +123,6 @@ export function useSavedData({ apiBase, user }) {
         return reportToDelete;
     }, [apiBase, user, savedReports]);
 
-    // Save multiple topics
     const rememberTopics = useCallback(async (prompts) => {
         const normalizedPrompts = (Array.isArray(prompts) ? prompts : [prompts])
             .map((entry) => (entry || '').trim())
@@ -178,13 +164,11 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [apiBase, loadTopics, user]);
 
-    // Save a single topic
     const rememberTopic = useCallback(
         (prompt) => rememberTopics([prompt]),
         [rememberTopics]
     );
 
-    // Delete a topic
     const forgetTopic = useCallback(async (id) => {
         if (!id) return;
         if (!user?.email) {
@@ -201,7 +185,6 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [apiBase, user]);
 
-    // Update a topic's collection (for drag-drop)
     const updateTopicCollection = useCallback((topicId, collectionId) => {
         setSavedTopics((current) =>
             current.map((topic) =>

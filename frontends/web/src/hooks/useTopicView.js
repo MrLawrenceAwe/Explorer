@@ -238,7 +238,6 @@ export function useTopicView({
         handleSuggestionToggle,
         handleSaveSelectedSuggestions,
         handleRefreshSuggestions,
-        handleRefreshSuggestions,
         handleToggleTopicSelectMode,
         avoidTopics,
         setAvoidTopics,

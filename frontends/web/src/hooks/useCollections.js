@@ -7,15 +7,7 @@ import {
     updateSavedTopic,
 } from '../utils/helpers';
 
-/**
- * Hook for managing topic collections (folders).
- * 
- * @param {object} options
- * @param {string} options.apiBase - Base URL for API calls
- * @param {object} options.user - Current user object with email and username
- * @param {function} options.onTopicMoved - Callback when a topic is moved to a collection
- * @param {function} options.onError - Callback for error handling
- */
+/** Hook for managing topic collections (folders). */
 export function useCollections({
     apiBase,
     user,
@@ -30,14 +22,12 @@ export function useCollections({
     const [newCollectionName, setNewCollectionName] = useState('');
     const abortControllerRef = useRef(null);
 
-    // Load collections from API
     const loadCollections = useCallback(async () => {
         if (!user?.email) {
             setCollections([]);
             return;
         }
 
-        // Cancel any pending request
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
@@ -59,7 +49,6 @@ export function useCollections({
         }
     }, [apiBase, user, onError]);
 
-    // Initial load
     useEffect(() => {
         loadCollections();
         return () => {
@@ -69,7 +58,6 @@ export function useCollections({
         };
     }, [loadCollections]);
 
-    // Toggle collection expanded/collapsed state
     const toggleCollectionExpanded = useCallback((collectionId) => {
         setExpandedCollections((prev) => {
             const next = new Set(prev);
@@ -82,7 +70,6 @@ export function useCollections({
         });
     }, []);
 
-    // Create a new collection
     const handleCreateCollection = useCallback(async (name) => {
         if (!user?.email) {
             onError?.('Set a user email in Settings to create collections.');
@@ -110,7 +97,6 @@ export function useCollections({
         }
     }, [apiBase, user, newCollectionName, onError]);
 
-    // Update a collection
     const handleUpdateCollection = useCallback(async (collectionId, updates) => {
         if (!user?.email) return null;
 
@@ -128,7 +114,6 @@ export function useCollections({
         }
     }, [apiBase, user, onError]);
 
-    // Delete a collection
     const handleDeleteCollection = useCallback(async (collectionId) => {
         if (!user?.email) return false;
 
@@ -148,7 +133,6 @@ export function useCollections({
         }
     }, [apiBase, user, onError]);
 
-    // Move a topic to a collection
     const handleMoveTopicToCollection = useCallback(async (topicId, collectionId) => {
         if (!user?.email) return false;
 
@@ -174,24 +158,20 @@ export function useCollections({
         }
     }, [apiBase, user, onTopicMoved, onError]);
 
-    // Start creating a new collection
     const startCreating = useCallback(() => {
         setIsCreating(true);
         setNewCollectionName('');
     }, []);
 
-    // Cancel creating a new collection
     const cancelCreating = useCallback(() => {
         setIsCreating(false);
         setNewCollectionName('');
     }, []);
 
-    // Start editing a collection
     const startEditing = useCallback((collectionId) => {
         setEditingCollectionId(collectionId);
     }, []);
 
-    // Cancel editing
     const cancelEditing = useCallback(() => {
         setEditingCollectionId(null);
     }, []);
