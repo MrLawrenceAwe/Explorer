@@ -12,3 +12,4 @@ data/
 data/reportgen.db
 data/reportgen.db.migration-lock
 .vscode/settings.json
+DEPLOYMENT_NOTES.local.md
