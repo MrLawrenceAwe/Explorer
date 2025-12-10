@@ -165,15 +165,16 @@ def update_saved_topic(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved topic not found.")
         
         # Update collection_id
-        if payload.collection_id is not None:
-            # Validate collection exists and belongs to user
-            collection = session.get(TopicCollection, payload.collection_id)
-            if not collection or collection.owner_user_id != user.id or collection.is_deleted:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
-            topic.collection_id = payload.collection_id
-        elif hasattr(payload, 'collection_id'):
-            # Explicitly set to None (move to uncategorized)
-            topic.collection_id = None
+        if "collection_id" in payload.model_fields_set:
+            if payload.collection_id is not None:
+                # Validate collection exists and belongs to user
+                collection = session.get(TopicCollection, payload.collection_id)
+                if not collection or collection.owner_user_id != user.id or collection.is_deleted:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
+                topic.collection_id = payload.collection_id
+            else:
+                # Explicitly set to None (move to uncategorized)
+                topic.collection_id = None
         
         session.flush()
         return SavedTopicResponse(

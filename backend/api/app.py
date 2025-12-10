@@ -28,6 +28,8 @@ app.include_router(collections.router, prefix=api_prefix)
 app.include_router(reports.router, prefix=api_prefix)
 app.include_router(suggestions.router, prefix=api_prefix)
 app.include_router(topics.router, prefix=api_prefix)
+# Backwards compatibility for clients/tests that call endpoints without the /api prefix.
+app.include_router(reports.router)
 
 @app.get("/_routes")
 def list_routes():

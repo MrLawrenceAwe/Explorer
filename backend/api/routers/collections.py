@@ -95,10 +95,9 @@ def create_collection(
             select(TopicCollection).where(
                 TopicCollection.owner_user_id == user.id,
                 TopicCollection.name == name,
-                TopicCollection.is_deleted.is_(False),
             )
         )
-        if existing:
+        if existing and not existing.is_deleted:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"A collection named '{name}' already exists."
@@ -111,6 +110,15 @@ def create_collection(
                 TopicCollection.is_deleted.is_(False),
             )
         ) or 0
+
+        if existing and existing.is_deleted:
+            existing.is_deleted = False
+            existing.description = (payload.description or "").strip() or None
+            existing.color = (payload.color or "").strip() or None
+            existing.icon = (payload.icon or "").strip() or None
+            existing.position = max_position + 1
+            session.flush()
+            return _build_collection_response(existing, 0)
         
         collection = TopicCollection(
             name=name,
