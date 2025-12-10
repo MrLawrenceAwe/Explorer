@@ -3,8 +3,11 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Generator
 
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from .schema_migrations import ensure_lightweight_schema
@@ -16,9 +19,13 @@ def create_engine_from_url(
     pool_pre_ping: bool = True,
 ) -> Engine:
     """Create a SQLAlchemy engine configured for modern 2.0 usage."""
+    url = make_url(database_url)
+    if url.drivername == "sqlite" and url.database and url.database not in {":memory:", None}:
+        db_path = Path(url.database.replace("file:", "", 1)).expanduser().resolve()
+        db_path.parent.mkdir(parents=True, exist_ok=True)
 
     engine = create_engine(
-        database_url,
+        url,
         echo=echo,
         pool_pre_ping=pool_pre_ping,
         future=True,
