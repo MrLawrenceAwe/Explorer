@@ -95,7 +95,6 @@ class OutlineService:
 
 
 class OutlineParsingError(Exception):
-    """Raised when the LLM returns malformed JSON for the outline."""
 
     def __init__(self, message: str, raw_response: str):
         super().__init__(message)
