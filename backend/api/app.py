@@ -36,8 +36,5 @@ def list_routes():
 
 frontend_dir = Path(__file__).resolve().parents[2] / "frontends" / "web" / "dist"
 if frontend_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_dir), html=True), name="static")
-
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        return FileResponse(frontend_dir / "index.html")
+    # Serve the built frontend and assets from the root so /assets/* resolves correctly.
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
