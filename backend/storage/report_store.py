@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,17 +13,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.db import (
-    Base,
-    Report,
-    ReportStatus,
-    SavedTopic,
-    User,
-    create_engine_from_url,
-    create_session_factory,
-    session_scope,
-)
+from backend.db import Report, ReportStatus, SavedTopic, User, session_scope
 from backend.schemas import GenerateRequest, Outline
+from backend.utils.slug_utils import slugify
+from backend.utils.user_utils import get_or_create_user
+from backend.db.session import create_session_factory_from_env
 
 _DEFAULT_DB_URL = "sqlite:///data/reportgen.db"
 _DEFAULT_DB_ENV = "EXPLORER_DATABASE_URL"
@@ -34,7 +27,6 @@ _DEFAULT_USER_EMAIL_ENV = "EXPLORER_DEFAULT_USER_EMAIL"
 _SYSTEM_USER_EMAIL = "system@explorer.local"
 _SYSTEM_USERNAME = "Explorer System"
 
-_SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
 _TOPIC_RETRY_LIMIT = 3
 _TOPIC_TITLE_MAX_LENGTH = 255
 _FALLBACK_REPORT_TITLE = "Explorer Report"
@@ -82,10 +74,12 @@ class GeneratedReportStore:
                         username = request.username
                     else:
                         username = request.username or _SYSTEM_USERNAME
-                    user = self._get_or_create_user(
+                    user = get_or_create_user(
                         session,
                         user_email,
                         username,
+                        overwrite_placeholder=True,
+                        placeholder_names=(_SYSTEM_USERNAME,),
                     )
                     saved_topic = self._get_or_create_saved_topic(
                         session,
@@ -164,25 +158,6 @@ class GeneratedReportStore:
             return outline_title
         return _FALLBACK_REPORT_TITLE
 
-    def _get_or_create_user(
-        self,
-        session: Session,
-        email: str,
-        username: Optional[str],
-    ) -> User:
-        user = session.scalar(select(User).where(User.email == email))
-        if user:
-            if username:
-                if not user.full_name or user.full_name == _SYSTEM_USERNAME:
-                    user.full_name = username
-                if not user.username or user.username == _SYSTEM_USERNAME:
-                    user.username = username
-            return user
-        user = User(email=email, full_name=username, username=username)
-        session.add(user)
-        session.flush()
-        return user
-
     def _get_or_create_saved_topic(
         self,
         session: Session,
@@ -201,7 +176,7 @@ class GeneratedReportStore:
             if existing_topic.is_deleted:
                 existing_topic.is_deleted = False
             return existing_topic
-        base_slug = slug_override or _slugify(title)
+        base_slug = slug_override or slugify(title)
         slug = base_slug
         while True:
             existing = session.scalar(select(SavedTopic).where(SavedTopic.slug == slug))
@@ -221,9 +196,9 @@ class GeneratedReportStore:
 
     def _generate_slug_variant(self, base_title: str, attempt: int) -> str:
         if attempt == 0:
-            return _slugify(base_title)
+            return slugify(base_title)
         suffix = uuid.uuid4().hex[:6]
-        return f"{_slugify(base_title)}-{attempt}-{suffix}"
+        return f"{slugify(base_title)}-{attempt}-{suffix}"
 
     def _remove_artifacts(self, handle: StoredReportHandle) -> None:
         if handle.report_dir.exists():
@@ -271,16 +246,12 @@ class GeneratedReportStore:
         except ValueError:
             return str(path)
 
-def _slugify(value: str) -> str:
-    candidate = _SLUG_PATTERN.sub("-", value.lower()).strip("-")
-    return candidate or "topic"
-
 
 def _create_default_session_factory() -> sessionmaker[Session]:
-    database_url = os.environ.get(_DEFAULT_DB_ENV, _DEFAULT_DB_URL)
-    engine = create_engine_from_url(database_url)
-    Base.metadata.create_all(engine)
-    return create_session_factory(engine)
+    return create_session_factory_from_env(
+        env_var=_DEFAULT_DB_ENV,
+        default_url=_DEFAULT_DB_URL,
+    )
 
 
 def _normalize_topic_title(value: Optional[str]) -> str:

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Iterable, List, Optional, Sequence
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.db import Report, create_engine_from_url, create_session_factory, session_scope
+from backend.db import Report, session_scope
+from backend.db.session import create_session_factory_from_env
 from backend.schemas import (
     SuggestionItem,
     SuggestionsRequest,
@@ -172,9 +172,10 @@ class SuggestionService:
 
     @staticmethod
     def _build_session_factory() -> Optional[sessionmaker[Session]]:
-        database_url = os.environ.get(_DEFAULT_DB_ENV, _DEFAULT_DB_URL)
         try:
-            engine = create_engine_from_url(database_url)
+            return create_session_factory_from_env(
+                env_var=_DEFAULT_DB_ENV,
+                default_url=_DEFAULT_DB_URL,
+            )
         except Exception:
             return None
-        return create_session_factory(engine)

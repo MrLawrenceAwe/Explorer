@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from backend.utils.formatting import (
@@ -67,13 +66,6 @@ class ReportGeneratorService:
 
 
 
-    @asynccontextmanager
-    async def _emit_status(
-        self, payload: Dict[str, Any]
-    ) -> AsyncGenerator[Dict[str, Any], None]:
-        yield payload
-
-
 class _ReportStreamRunner:
     service: ReportGeneratorService
     request: GenerateRequest
@@ -107,8 +99,7 @@ class _ReportStreamRunner:
         self._resolved_outline: Optional[Outline] = None
 
     async def _emit_status_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        async with self.service._emit_status(payload) as status:
-            return status
+        return payload
 
     async def run(self) -> AsyncGenerator[Dict[str, Any], None]:
         try:

@@ -1,14 +1,13 @@
-from typing import Optional, Tuple
 import os
 from pathlib import Path
-import uuid
+from typing import Optional, Tuple
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
-from backend.db import User, Report
+from backend.db import Report
 from backend.storage import GeneratedReportStore
+from backend.utils.slug_utils import slugify
+from backend.utils.user_utils import get_or_create_user
 
 def normalize_user(user_email: Optional[str], username: Optional[str]) -> Tuple[str, Optional[str]]:
     email = (user_email or "").strip()
@@ -25,35 +24,6 @@ def resolve_base_dir(report_store: Optional[GeneratedReportStore]) -> Path:
         return report_store.base_dir
     configured = os.environ.get("EXPLORER_REPORT_STORAGE_DIR", "data/reports")
     return Path(configured).expanduser().resolve()
-
-def get_or_create_user(
-    session: Session,
-    user_email: str,
-    username: Optional[str],
-) -> User:
-    user = session.scalar(select(User).where(User.email == user_email))
-    if user:
-        if username:
-            if not user.full_name:
-                user.full_name = username
-            if not user.username:
-                user.username = username
-        return user
-    user = User(email=user_email, full_name=username, username=username)
-    session.add(user)
-    session.flush()
-    return user
-
-def slugify(value: str) -> str:
-    slug = value.lower()
-    cleaned = []
-    for char in slug:
-        if char.isalnum():
-            cleaned.append(char)
-        else:
-            cleaned.append("-")
-    slugified = "".join(cleaned).strip("-")
-    return slugified or "topic"
 
 def resolve_topic_title(title: str) -> str:
     resolved = (title or "").strip()

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
-from typing import Generator
-
 from pathlib import Path
+from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from .models import Base
 from .schema_migrations import ensure_lightweight_schema
 
 def create_engine_from_url(
@@ -47,6 +48,21 @@ def create_session_factory(
         expire_on_commit=expire_on_commit,
         future=True,
     )
+
+
+def create_session_factory_from_env(
+    *,
+    env_var: str = "EXPLORER_DATABASE_URL",
+    default_url: str = "sqlite:///data/reportgen.db",
+    echo: bool = False,
+    expire_on_commit: bool = False,
+) -> sessionmaker[Session]:
+    """Build a session factory using env configuration and ensure tables exist."""
+
+    database_url = os.environ.get(env_var, default_url)
+    engine = create_engine_from_url(database_url, echo=echo)
+    Base.metadata.create_all(engine)
+    return create_session_factory(engine, expire_on_commit=expire_on_commit)
 
 
 @contextmanager

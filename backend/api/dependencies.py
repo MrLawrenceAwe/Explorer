@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.db import Base, create_engine_from_url, create_session_factory
+from backend.db.session import create_session_factory_from_env
 from backend.services.outline_service import OutlineService
 from backend.services.report_service import ReportGeneratorService
 from backend.services.suggestion_service import SuggestionService
@@ -32,10 +32,10 @@ def get_report_service() -> ReportGeneratorService:
 
 @lru_cache
 def get_session_factory() -> sessionmaker[Session]:
-    database_url = os.environ.get("EXPLORER_DATABASE_URL", "sqlite:///data/reportgen.db")
-    engine = create_engine_from_url(database_url)
-    Base.metadata.create_all(engine)
-    return create_session_factory(engine)
+    return create_session_factory_from_env(
+        env_var="EXPLORER_DATABASE_URL",
+        default_url="sqlite:///data/reportgen.db",
+    )
 
 
 @lru_cache
