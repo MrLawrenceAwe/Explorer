@@ -89,6 +89,12 @@ function App() {
     updateTopicCollection,
   } = useSavedData({ apiBase, user });
 
+  const handleSavedDataError = useCallback((msg) => setSavedError(msg), [setSavedError]);
+
+  const handleTopicMoved = useCallback((updatedTopic) => {
+    updateTopicCollection(updatedTopic.id, updatedTopic.collectionId);
+  }, [updateTopicCollection]);
+
   // Collections management
   const {
     collections,
@@ -111,10 +117,8 @@ function App() {
   } = useCollections({
     apiBase,
     user,
-    onTopicMoved: (updatedTopic) => {
-      updateTopicCollection(updatedTopic.id, updatedTopic.collectionId);
-    },
-    onError: (msg) => setSavedError(msg),
+    onTopicMoved: handleTopicMoved,
+    onError: handleSavedDataError,
   });
 
   // Chat management
