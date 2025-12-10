@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useChat } from './hooks/useChat';
 import { useOutlineForm } from './hooks/useOutlineForm';
 import { useSettings } from './hooks/useSettings';
@@ -11,6 +11,7 @@ import { useAppState } from './hooks/useAppState';
 import { useCollections } from './hooks/useCollections';
 import { useMainViewState } from './hooks/useMainViewState';
 import { AppLayout } from './components/AppLayout';
+import { useBeforeUnloadWarning } from './hooks/useBeforeUnloadWarning';
 
 import { MODEL_PRESET_LABELS } from './utils/modelPresets';
 import { parseTopicsList } from './utils/text';
@@ -126,28 +127,19 @@ function App() {
   } = useChat(apiBase, rememberReport);
 
   // Warn on page leave during generation
-  useEffect(() => {
-    if (!isRunning) return undefined;
-    const handleBeforeUnload = (event) => {
-      event.preventDefault();
-      event.returnValue = 'A report is still generating. Leaving will stop it.';
-      return event.returnValue;
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isRunning]);
+  useBeforeUnloadWarning(isRunning);
 
   // Report deletion handler
   const handleForgetReport = useCallback(async (id) => {
     const reportToDelete = await forgetReport(id);
-    if (reportToDelete && !isRunning) {
-      const assistantMsg = [...messages].reverse().find((m) => m.role === 'assistant' && m.reportTopic);
-      if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
-        setMessages([]);
-        setIsHomeView(true);
-      }
+    if (!reportToDelete || isRunning) return;
+
+    const assistantMsg = findLatestAssistantReportMessage(messages);
+    if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
+      setMessages([]);
+      setIsHomeView(true);
     }
-  }, [forgetReport, messages, isRunning, setMessages, setIsHomeView]);
+  }, [forgetReport, isRunning, messages, setMessages, setIsHomeView]);
 
   // Generation hook
   const { runTopicPrompt } = useGeneration({
@@ -323,6 +315,13 @@ function App() {
   const composerButtonLabel = isRunning ? 'Stop' : 'Generate Report';
   const outlineSubmitLabel = isRunning ? 'Working…' : 'Generate report';
   const presetLabel = MODEL_PRESET_LABELS[selectedPreset] || selectedPreset;
+  const modelSelectionProps = {
+    stageModels,
+    onStageModelChange: handleStageModelChange,
+    selectedPreset,
+    onPresetSelect: handlePresetSelect,
+    presetLabel,
+  };
 
   const {
     isTopicViewOpen,
@@ -344,6 +343,33 @@ function App() {
   });
 
   const useCollectionsFeature = Boolean(user?.email);
+  const topicViewHandlers = {
+    startEditing: startTopicEditing,
+    cancelEditing: cancelTopicEditing,
+    commitEditing: commitTopicEdit,
+    handleEditSubmit: handleTopicEditSubmit,
+    handleEditBlur: handleTopicEditBlur,
+    handleEditKeyDown: handleTopicEditKeyDown,
+    handleTitleKeyDown: handleTopicTitleKeyDown,
+    handleSave: handleTopicViewSave,
+    handleGenerate: handleTopicViewGenerate,
+    handleClose: closeTopicView,
+    handleOpenTopic,
+    handleToggleSuggestion: handleSuggestionToggle,
+    handleSaveSelectedSuggestions,
+    handleRefreshSuggestions,
+    handleToggleSelectMode: handleToggleTopicSelectMode,
+    sectionCount,
+    setSectionCount,
+  };
+  const outlineHandlers = {
+    handleAddSection: handleAddOutlineSection,
+    handleRemoveSection: handleRemoveOutlineSection,
+    handleSectionTitleChange: handleOutlineSectionTitleChange,
+    handleSubsectionChange: handleOutlineSubsectionChange,
+    handleAddSubsection: handleAddSubsectionLine,
+    handleRemoveSubsection: handleRemoveSubsectionLine,
+  };
 
   const sidebarProps = {
     savedTopics,
@@ -403,33 +429,11 @@ function App() {
     suggestionsLoading: topicSuggestionsLoading,
     selectedSuggestions,
     selectMode: topicSelectMode,
-    presetLabel,
-    stageModels,
-    onStageModelChange: handleStageModelChange,
-    selectedPreset,
-    onPresetSelect: handlePresetSelect,
     selectToggleRef: topicSelectToggleRef,
     suggestionsRef: topicSuggestionsRef,
     isRunning,
-    handlers: {
-      startEditing: startTopicEditing,
-      cancelEditing: cancelTopicEditing,
-      commitEditing: commitTopicEdit,
-      handleEditSubmit: handleTopicEditSubmit,
-      handleEditBlur: handleTopicEditBlur,
-      handleEditKeyDown: handleTopicEditKeyDown,
-      handleTitleKeyDown: handleTopicTitleKeyDown,
-      handleSave: handleTopicViewSave,
-      handleGenerate: handleTopicViewGenerate,
-      handleClose: closeTopicView,
-      handleOpenTopic,
-      handleToggleSuggestion: handleSuggestionToggle,
-      handleSaveSelectedSuggestions,
-      handleRefreshSuggestions,
-      handleToggleSelectMode: handleToggleTopicSelectMode,
-      sectionCount,
-      setSectionCount,
-    },
+    ...modelSelectionProps,
+    handlers: topicViewHandlers,
     editorRef: topicViewEditorRef,
     avoidTopics,
     setAvoidTopics,
@@ -459,14 +463,7 @@ function App() {
     isRunning,
     handleSubmit: handleOutlineSubmit,
     submitLabel: outlineSubmitLabel,
-    handlers: {
-      handleAddSection: handleAddOutlineSection,
-      handleRemoveSection: handleRemoveOutlineSection,
-      handleSectionTitleChange: handleOutlineSectionTitleChange,
-      handleSubsectionChange: handleOutlineSubsectionChange,
-      handleAddSubsection: handleAddSubsectionLine,
-      handleRemoveSubsection: handleRemoveSubsectionLine,
-    },
+    handlers: outlineHandlers,
     avoidTopics: outlineAvoidTopics,
     setAvoidTopics: setOutlineAvoidTopics,
     includeTopics: outlineIncludeTopics,
@@ -486,11 +483,6 @@ function App() {
     composerButtonLabel,
     sectionCount,
     setSectionCount,
-    presetLabel,
-    stageModels,
-    onStageModelChange: handleStageModelChange,
-    selectedPreset,
-    onPresetSelect: handlePresetSelect,
     hideComposer: !isHomeView && isRunning,
     composerLocked: !isHomeView && !isRunning && hasCompletedReport,
     onViewReport: handleReportOpen,
@@ -498,6 +490,7 @@ function App() {
     setAvoidTopics: setChatAvoidTopics,
     includeTopics: chatIncludeTopics,
     setIncludeTopics: setChatIncludeTopics,
+    ...modelSelectionProps,
   };
 
   const settingsProps = {
@@ -524,6 +517,10 @@ function App() {
   };
 
   return <AppLayout sidebarProps={sidebarProps} mainProps={mainProps} settingsProps={settingsProps} />;
+}
+
+function findLatestAssistantReportMessage(messages) {
+  return [...messages].reverse().find((message) => message.role === 'assistant' && message.reportTopic);
 }
 
 export default App;
