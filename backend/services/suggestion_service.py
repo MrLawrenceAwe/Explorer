@@ -93,7 +93,7 @@ class SuggestionService:
             '  "suggestions": [{"title": "Concise topic string"}]\n'
             "}\n"
             "Return suggestions as objects only (never bare strings). "
-            "Keep titles under 80 characters, avoid duplicates, and skip anything too vague. "
+            "Keep titles under 80 characters and avoid duplicates"
         )
 
     def _parse_titles(
