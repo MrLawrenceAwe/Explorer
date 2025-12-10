@@ -20,7 +20,7 @@ export function loadApiBase() {
     }
 
     if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
-        return "http://localhost:8000";
+        return "http://localhost:8000/api";
     }
 
     return DEFAULT_API_BASE;
