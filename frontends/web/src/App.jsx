@@ -80,7 +80,6 @@ function App() {
     isSyncing: isSyncingSaved,
     error: savedError,
     setError: setSavedError,
-    setSavedTopics,
     rememberReport,
     forgetReport,
     rememberTopics,
@@ -104,7 +103,6 @@ function App() {
     isCreating: isCreatingCollection,
     newCollectionName,
     setNewCollectionName,
-    loadCollections,
     toggleCollectionExpanded,
     handleCreateCollection,
     handleUpdateCollection,
@@ -325,7 +323,7 @@ function App() {
     setIsHomeView(false);
   }, [closeTopicView, setActiveReport, setIsHomeView]);
 
-  // Computed values
+
   const composerButtonLabel = isRunning ? 'Stop' : 'Generate Report';
   const outlineSubmitLabel = isRunning ? 'Working…' : 'Generate report';
   const presetLabel = MODEL_PRESET_LABELS[selectedPreset] || selectedPreset;
@@ -411,7 +409,7 @@ function App() {
     }
   }, [isRunning, isTopicViewOpen, isReportViewOpen, isHomeView, messages.length, setMode, setIsHomeView]);
 
-  // Feature flag for collections (enable for users with email set)
+
   const useCollectionsFeature = Boolean(user?.email);
 
   return (
