@@ -70,6 +70,13 @@ export function cleanHeadingForTopic(heading) {
     return cleaned || original;
 }
 
+export function parseTopicsList(value) {
+    return (value || "")
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+}
+
 export function downloadTextFile(text, filename = "report.md") {
     const safeText = text || "";
     if (!safeText) return;

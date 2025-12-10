@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useChat } from './hooks/useChat';
 import { useOutlineForm } from './hooks/useOutlineForm';
 import { useSettings } from './hooks/useSettings';
@@ -9,16 +9,11 @@ import { useGeneration } from './hooks/useGeneration';
 import { useSavedData } from './hooks/useSavedData';
 import { useAppState } from './hooks/useAppState';
 import { useCollections } from './hooks/useCollections';
-
-import { Sidebar } from './components/Sidebar';
-import { ChatPane } from './components/ChatPane';
-import { TopicView } from './components/TopicView';
-import { OutlineForm } from './components/OutlineForm';
-import { ReportView } from './components/ReportView';
-import { ExploreSuggestions } from './components/ExploreSuggestions';
-import { SettingsModal } from './components/SettingsModal';
+import { useMainViewState } from './hooks/useMainViewState';
+import { AppLayout } from './components/AppLayout';
 
 import { MODEL_PRESET_LABELS } from './utils/modelPresets';
+import { parseTopicsList } from './utils/text';
 
 function App() {
   // Core app state
@@ -249,6 +244,9 @@ function App() {
     outlineJsonInput,
     setOutlineJsonInput,
     outlineError,
+    trimmedJsonInput,
+    jsonValidationError,
+    isOutlineFormValid,
     resetOutlineForm,
     handleAddOutlineSection,
     handleRemoveOutlineSection,
@@ -289,8 +287,8 @@ function App() {
     if (!prompt || isRunning) return;
     setComposerValue('');
     setIsHomeView(false);
-    const avoid = chatAvoidTopics.split(',').map((s) => s.trim()).filter(Boolean);
-    const include = chatIncludeTopics.split(',').map((s) => s.trim()).filter(Boolean);
+    const avoid = parseTopicsList(chatAvoidTopics);
+    const include = parseTopicsList(chatIncludeTopics);
     await runTopicPrompt(prompt, { avoid, include });
     setChatAvoidTopics('');
     setChatIncludeTopics('');
@@ -322,270 +320,210 @@ function App() {
     closeTopicView();
     setIsHomeView(false);
   }, [closeTopicView, setActiveReport, setIsHomeView]);
-
-
   const composerButtonLabel = isRunning ? 'Stop' : 'Generate Report';
   const outlineSubmitLabel = isRunning ? 'Working…' : 'Generate report';
   const presetLabel = MODEL_PRESET_LABELS[selectedPreset] || selectedPreset;
 
-  const normalizedOutlineTopic = outlineTopic.trim();
-  const lineModeValidity = outlineSections.every((section) => section.title.trim());
-  const isLineModeValid = Boolean(normalizedOutlineTopic && lineModeValidity);
-
-  const trimmedJsonInput = outlineJsonInput.trim();
-  let jsonValidationError = '';
-  if (outlineInputMode === 'json' && trimmedJsonInput) {
-    try {
-      const parsed = JSON.parse(trimmedJsonInput);
-      if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.sections)) {
-        jsonValidationError = 'JSON outline must contain a sections array.';
-      } else if (
-        !parsed.sections.length ||
-        !parsed.sections.every(
-          (section) =>
-            section &&
-            typeof section.title === 'string' &&
-            section.title.trim() &&
-            Array.isArray(section.subsections)
-        )
-      ) {
-        jsonValidationError = 'Each JSON section needs a title.';
-      }
-    } catch (error) {
-      jsonValidationError = error.message || 'Enter valid JSON.';
-    }
-  }
-
-  const isJsonModeValid = Boolean(normalizedOutlineTopic && trimmedJsonInput && !jsonValidationError);
-  const isOutlineFormValid = outlineInputMode === 'lines' ? isLineModeValid : isJsonModeValid;
-
-  const hasMessages = messages.length > 0;
-  const isTopicViewOpen = Boolean(topicViewTopic);
-
-  const isTopicSaved = useMemo(
-    () => savedTopics.some((entry) => entry.prompt === topicViewTopic),
-    [savedTopics, topicViewTopic]
-  );
-
-  const hasCompletedReport = useMemo(
-    () => messages.some((message) => message.role === 'assistant' && Boolean(message.reportText)),
-    [messages]
-  );
-
-  const shouldShowExplore = isHomeView || (!isTopicViewOpen && !isReportViewOpen && !hasMessages);
-
-  const generatingReport = useMemo(() => {
-    if (!isRunning && (!hasMessages || !isHomeView)) return null;
-    const assistantMsg = [...messages].reverse().find((m) => m.role === 'assistant' && m.reportTopic);
-    if (assistantMsg) {
-      const isSaved = savedReports.some((r) => r.topic === assistantMsg.reportTopic);
-      if (isSaved && !isRunning) return null;
-      return {
-        id: 'generating',
-        topic: assistantMsg.reportTopic,
-        title: assistantMsg.reportTopic,
-        isGenerating: isRunning,
-      };
-    }
-    return null;
-  }, [isRunning, messages, hasMessages, isHomeView, savedReports]);
-
-  // Chat pane classes
-  const chatPaneClasses = ['chat-pane'];
-  if (isHomeView || (!hasMessages && !isTopicViewOpen && !isReportViewOpen)) {
-    chatPaneClasses.push('chat-pane--empty');
-  }
-  if (isTopicViewOpen || isReportViewOpen) {
-    chatPaneClasses.push('chat-pane--topic-view');
-  }
-  const chatPaneClassName = chatPaneClasses.join(' ');
-
-  // Auto-show home when empty
-  useEffect(() => {
-    if (isRunning || isTopicViewOpen || isReportViewOpen || isHomeView) return;
-    if (messages.length === 0) {
-      setIsHomeView(true);
-      setMode('topic');
-    }
-  }, [isRunning, isTopicViewOpen, isReportViewOpen, isHomeView, messages.length, setMode, setIsHomeView]);
-
+  const {
+    isTopicViewOpen,
+    isTopicSaved,
+    hasCompletedReport,
+    shouldShowExplore,
+    generatingReport,
+    chatPaneClassName,
+  } = useMainViewState({
+    isRunning,
+    isHomeView,
+    isReportViewOpen,
+    messages,
+    savedReports,
+    savedTopics,
+    topicViewTopic,
+    setIsHomeView,
+    setMode,
+  });
 
   const useCollectionsFeature = Boolean(user?.email);
 
-  return (
-    <div className="page">
-      <Sidebar
-        savedTopics={savedTopics}
-        savedReports={savedReports}
-        generatingReport={generatingReport}
-        onGeneratingReportSelect={handleGeneratingReportSelect}
-        handleTopicRecall={handleTopicRecall}
-        handleTopicRemove={forgetTopic}
-        handleReportRemove={handleForgetReport}
-        topicViewBarValue={topicViewBarValue}
-        setTopicViewBarValue={setTopicViewBarValue}
-        handleTopicViewBarSubmit={handleTopicViewBarSubmit}
-        onOpenSettings={handleOpenSettings}
-        onReportSelect={handleReportOpen}
-        onResetExplore={handleReset}
-        isSyncing={isSyncingSaved || isLoadingCollections}
-        savedError={savedError}
-        // Collections props
-        useCollections={useCollectionsFeature}
-        collections={collections}
-        expandedCollections={expandedCollections}
-        isCreatingCollection={isCreatingCollection}
-        newCollectionName={newCollectionName}
-        editingCollectionId={editingCollectionId}
-        onToggleCollectionExpanded={toggleCollectionExpanded}
-        onCreateCollection={handleCreateCollection}
-        onUpdateCollection={handleUpdateCollection}
-        onDeleteCollection={handleDeleteCollection}
-        onStartCreatingCollection={startCreatingCollection}
-        onCancelCreatingCollection={cancelCreatingCollection}
-        onStartEditingCollection={startEditingCollection}
-        onCancelEditingCollection={cancelEditingCollection}
-        onNewCollectionNameChange={setNewCollectionName}
-        onMoveTopicToCollection={handleMoveTopicToCollection}
-      />
-      <main className={chatPaneClassName}>
-        {shouldShowExplore && (
-          <ExploreSuggestions
-            exploreSuggestions={exploreSuggestions}
-            exploreLoading={exploreLoading}
-            selectedExploreSuggestions={selectedExploreSuggestions}
-            exploreSelectMode={exploreSelectMode}
-            exploreSelectToggleRef={exploreSelectToggleRef}
-            exploreSuggestionsRef={exploreSuggestionsRef}
-            handleRefreshExplore={handleRefreshExplore}
-            handleToggleExploreSuggestion={handleToggleExploreSuggestion}
-            handleToggleExploreSelectMode={handleToggleExploreSelectMode}
-            handleOpenTopic={handleOpenTopic}
-          />
-        )}
-        {isTopicViewOpen ? (
-          <TopicView
-            topic={topicViewTopic}
-            isEditing={isTopicEditing}
-            draft={topicViewDraft}
-            setDraft={setTopicViewDraft}
-            isSaved={isTopicSaved}
-            suggestions={topicSuggestions}
-            suggestionsLoading={topicSuggestionsLoading}
-            selectedSuggestions={selectedSuggestions}
-            selectMode={topicSelectMode}
-            presetLabel={presetLabel}
-            stageModels={stageModels}
-            onStageModelChange={handleStageModelChange}
-            selectedPreset={selectedPreset}
-            onPresetSelect={handlePresetSelect}
-            selectToggleRef={topicSelectToggleRef}
-            suggestionsRef={topicSuggestionsRef}
-            isRunning={isRunning}
-            handlers={{
-              startEditing: startTopicEditing,
-              cancelEditing: cancelTopicEditing,
-              commitEditing: commitTopicEdit,
-              handleEditSubmit: handleTopicEditSubmit,
-              handleEditBlur: handleTopicEditBlur,
-              handleEditKeyDown: handleTopicEditKeyDown,
-              handleTitleKeyDown: handleTopicTitleKeyDown,
-              handleSave: handleTopicViewSave,
-              handleGenerate: handleTopicViewGenerate,
-              handleClose: closeTopicView,
-              handleOpenTopic,
-              handleToggleSuggestion: handleSuggestionToggle,
-              handleSaveSelectedSuggestions,
-              handleRefreshSuggestions,
-              handleToggleSelectMode: handleToggleTopicSelectMode,
-              sectionCount,
-              setSectionCount,
-            }}
-            editorRef={topicViewEditorRef}
-            avoidTopics={avoidTopics}
-            setAvoidTopics={setAvoidTopics}
-            includeTopics={includeTopics}
-            setIncludeTopics={setIncludeTopics}
-          />
-        ) : isReportViewOpen ? (
-          <ReportView
-            report={activeReport}
-            onClose={handleReportClose}
-            onOpenTopic={handleOpenTopic}
-          />
-        ) : (
-          <ChatPane
-            messages={isHomeView ? [] : messages}
-            mode={mode}
-            setMode={setMode}
-            isRunning={isRunning}
-            onReset={handleReset}
-            composerValue={composerValue}
-            setComposerValue={setComposerValue}
-            handleTopicSubmit={handleTopicSubmit}
-            handleStop={stopGeneration}
-            composerButtonLabel={composerButtonLabel}
-            sectionCount={sectionCount}
-            setSectionCount={setSectionCount}
-            presetLabel={presetLabel}
-            outlineForm={
-              <OutlineForm
-                outlineTopic={outlineTopic}
-                setOutlineTopic={setOutlineTopic}
-                outlineInputMode={outlineInputMode}
-                setOutlineInputMode={setOutlineInputMode}
-                outlineSections={outlineSections}
-                outlineJsonInput={outlineJsonInput}
-                setOutlineJsonInput={setOutlineJsonInput}
-                error={outlineError}
-                jsonValidationError={jsonValidationError}
-                trimmedJsonInput={trimmedJsonInput}
-                isFormValid={isOutlineFormValid}
-                isRunning={isRunning}
-                handleSubmit={handleOutlineSubmit}
-                submitLabel={outlineSubmitLabel}
-                handlers={{
-                  handleAddSection: handleAddOutlineSection,
-                  handleRemoveSection: handleRemoveOutlineSection,
-                  handleSectionTitleChange: handleOutlineSectionTitleChange,
-                  handleSubsectionChange: handleOutlineSubsectionChange,
-                  handleAddSubsection: handleAddSubsectionLine,
-                  handleRemoveSubsection: handleRemoveSubsectionLine,
-                }}
-                avoidTopics={outlineAvoidTopics}
-                setAvoidTopics={setOutlineAvoidTopics}
-                includeTopics={outlineIncludeTopics}
-                setIncludeTopics={setOutlineIncludeTopics}
-              />
-            }
-            stageModels={stageModels}
-            onStageModelChange={handleStageModelChange}
-            selectedPreset={selectedPreset}
-            onPresetSelect={handlePresetSelect}
-            hideComposer={!isHomeView && isRunning}
-            composerLocked={!isHomeView && !isRunning && hasCompletedReport}
-            onViewReport={handleReportOpen}
-            avoidTopics={chatAvoidTopics}
-            setAvoidTopics={setChatAvoidTopics}
-            includeTopics={chatIncludeTopics}
-            setIncludeTopics={setChatIncludeTopics}
-          />
-        )}
-      </main>
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={handleCloseSettings}
-        defaultPreset={defaultPreset}
-        onDefaultPresetChange={handleDefaultPresetChange}
-        modelPresets={modelPresets}
-        onPresetModelChange={handlePresetModelChange}
-        suggestionModel={suggestionModel}
-        onSuggestionModelChange={handleSuggestionModelChange}
-        user={user}
-        onUserChange={setUser}
-      />
-    </div>
-  );
+  const sidebarProps = {
+    savedTopics,
+    savedReports,
+    generatingReport,
+    onGeneratingReportSelect: handleGeneratingReportSelect,
+    handleTopicRecall,
+    handleTopicRemove: forgetTopic,
+    handleReportRemove: handleForgetReport,
+    topicViewBarValue,
+    setTopicViewBarValue,
+    handleTopicViewBarSubmit,
+    onOpenSettings: handleOpenSettings,
+    onReportSelect: handleReportOpen,
+    onResetExplore: handleReset,
+    isSyncing: isSyncingSaved || isLoadingCollections,
+    savedError,
+    useCollections: useCollectionsFeature,
+    collections,
+    expandedCollections,
+    isCreatingCollection: isCreatingCollection,
+    newCollectionName,
+    editingCollectionId,
+    onToggleCollectionExpanded: toggleCollectionExpanded,
+    onCreateCollection: handleCreateCollection,
+    onUpdateCollection: handleUpdateCollection,
+    onDeleteCollection: handleDeleteCollection,
+    onStartCreatingCollection: startCreatingCollection,
+    onCancelCreatingCollection: cancelCreatingCollection,
+    onStartEditingCollection: startEditingCollection,
+    onCancelEditingCollection: cancelEditingCollection,
+    onNewCollectionNameChange: setNewCollectionName,
+    onMoveTopicToCollection: handleMoveTopicToCollection,
+  };
+
+  const exploreProps = {
+    exploreSuggestions,
+    exploreLoading,
+    selectedExploreSuggestions,
+    exploreSelectMode,
+    exploreSelectToggleRef,
+    exploreSuggestionsRef,
+    handleRefreshExplore,
+    handleToggleExploreSuggestion,
+    handleToggleExploreSelectMode,
+    handleOpenTopic,
+  };
+
+  const topicViewProps = {
+    isOpen: isTopicViewOpen,
+    topic: topicViewTopic,
+    isEditing: isTopicEditing,
+    draft: topicViewDraft,
+    setDraft: setTopicViewDraft,
+    isSaved: isTopicSaved,
+    suggestions: topicSuggestions,
+    suggestionsLoading: topicSuggestionsLoading,
+    selectedSuggestions,
+    selectMode: topicSelectMode,
+    presetLabel,
+    stageModels,
+    onStageModelChange: handleStageModelChange,
+    selectedPreset,
+    onPresetSelect: handlePresetSelect,
+    selectToggleRef: topicSelectToggleRef,
+    suggestionsRef: topicSuggestionsRef,
+    isRunning,
+    handlers: {
+      startEditing: startTopicEditing,
+      cancelEditing: cancelTopicEditing,
+      commitEditing: commitTopicEdit,
+      handleEditSubmit: handleTopicEditSubmit,
+      handleEditBlur: handleTopicEditBlur,
+      handleEditKeyDown: handleTopicEditKeyDown,
+      handleTitleKeyDown: handleTopicTitleKeyDown,
+      handleSave: handleTopicViewSave,
+      handleGenerate: handleTopicViewGenerate,
+      handleClose: closeTopicView,
+      handleOpenTopic,
+      handleToggleSuggestion: handleSuggestionToggle,
+      handleSaveSelectedSuggestions,
+      handleRefreshSuggestions,
+      handleToggleSelectMode: handleToggleTopicSelectMode,
+      sectionCount,
+      setSectionCount,
+    },
+    editorRef: topicViewEditorRef,
+    avoidTopics,
+    setAvoidTopics,
+    includeTopics,
+    setIncludeTopics,
+  };
+
+  const reportViewProps = {
+    isOpen: isReportViewOpen,
+    report: activeReport,
+    onClose: handleReportClose,
+    onOpenTopic: handleOpenTopic,
+  };
+
+  const outlineFormProps = {
+    outlineTopic,
+    setOutlineTopic,
+    outlineInputMode,
+    setOutlineInputMode,
+    outlineSections,
+    outlineJsonInput,
+    setOutlineJsonInput,
+    error: outlineError,
+    jsonValidationError,
+    trimmedJsonInput,
+    isFormValid: isOutlineFormValid,
+    isRunning,
+    handleSubmit: handleOutlineSubmit,
+    submitLabel: outlineSubmitLabel,
+    handlers: {
+      handleAddSection: handleAddOutlineSection,
+      handleRemoveSection: handleRemoveOutlineSection,
+      handleSectionTitleChange: handleOutlineSectionTitleChange,
+      handleSubsectionChange: handleOutlineSubsectionChange,
+      handleAddSubsection: handleAddSubsectionLine,
+      handleRemoveSubsection: handleRemoveSubsectionLine,
+    },
+    avoidTopics: outlineAvoidTopics,
+    setAvoidTopics: setOutlineAvoidTopics,
+    includeTopics: outlineIncludeTopics,
+    setIncludeTopics: setOutlineIncludeTopics,
+  };
+
+  const chatPaneProps = {
+    messages: isHomeView ? [] : messages,
+    mode,
+    setMode,
+    isRunning,
+    onReset: handleReset,
+    composerValue,
+    setComposerValue,
+    handleTopicSubmit,
+    handleStop: stopGeneration,
+    composerButtonLabel,
+    sectionCount,
+    setSectionCount,
+    presetLabel,
+    stageModels,
+    onStageModelChange: handleStageModelChange,
+    selectedPreset,
+    onPresetSelect: handlePresetSelect,
+    hideComposer: !isHomeView && isRunning,
+    composerLocked: !isHomeView && !isRunning && hasCompletedReport,
+    onViewReport: handleReportOpen,
+    avoidTopics: chatAvoidTopics,
+    setAvoidTopics: setChatAvoidTopics,
+    includeTopics: chatIncludeTopics,
+    setIncludeTopics: setChatIncludeTopics,
+  };
+
+  const settingsProps = {
+    isOpen: isSettingsOpen,
+    onClose: handleCloseSettings,
+    defaultPreset,
+    onDefaultPresetChange: handleDefaultPresetChange,
+    modelPresets,
+    onPresetModelChange: handlePresetModelChange,
+    suggestionModel,
+    onSuggestionModelChange: handleSuggestionModelChange,
+    user,
+    onUserChange: setUser,
+  };
+
+  const mainProps = {
+    chatPaneClassName,
+    shouldShowExplore,
+    exploreProps,
+    topicViewProps,
+    reportViewProps,
+    chatPaneProps,
+    outlineFormProps,
+  };
+
+  return <AppLayout sidebarProps={sidebarProps} mainProps={mainProps} settingsProps={settingsProps} />;
 }
 
 export default App;

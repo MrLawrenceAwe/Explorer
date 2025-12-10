@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchTopicSuggestions } from '../utils/apiClient';
+import { parseTopicsList } from '../utils/text';
 
 export function useTopicView({
     apiBase,
@@ -148,8 +149,8 @@ export function useTopicView({
     const handleTopicViewGenerate = useCallback(async () => {
         if (!topicViewTopic || isRunning) return;
         closeTopicView();
-        const avoid = avoidTopics.split(",").map(s => s.trim()).filter(Boolean);
-        const include = includeTopics.split(",").map(s => s.trim()).filter(Boolean);
+        const avoid = parseTopicsList(avoidTopics);
+        const include = parseTopicsList(includeTopics);
         await runTopicPrompt(topicViewTopic, { avoid, include });
     }, [closeTopicView, isRunning, runTopicPrompt, topicViewTopic, avoidTopics, includeTopics]);
 

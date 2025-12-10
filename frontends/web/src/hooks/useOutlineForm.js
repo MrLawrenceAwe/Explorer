@@ -1,9 +1,48 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
     createEmptyOutlineSection,
     DEFAULT_OUTLINE_JSON,
     buildOutlineGeneratePayload,
+    parseTopicsList,
 } from '../utils/text';
+
+function validateJsonOutlineInput(outlineJsonInput) {
+    const trimmedJsonInput = outlineJsonInput.trim();
+    if (!trimmedJsonInput) {
+        return { trimmedJsonInput, sections: [], error: "" };
+    }
+    try {
+        const parsed = JSON.parse(trimmedJsonInput);
+        if (
+            !parsed ||
+            typeof parsed !== "object" ||
+            !Array.isArray(parsed.sections) ||
+            !parsed.sections.length
+        ) {
+            return { trimmedJsonInput, sections: [], error: "JSON must include a sections array." };
+        }
+        const invalidSection = parsed.sections.find(
+            (section) =>
+                !section ||
+                typeof section.title !== "string" ||
+                !section.title.trim() ||
+                !Array.isArray(section.subsections)
+        );
+        if (invalidSection) {
+            return { trimmedJsonInput, sections: [], error: "Each JSON section needs a title." };
+        }
+        const sections = parsed.sections.map((section) => ({
+            title: section.title.trim(),
+            subsections: section.subsections
+                .map((entry) => (entry || "").trim())
+                .filter(Boolean),
+        }));
+        return { trimmedJsonInput, sections, error: "" };
+    } catch (error) {
+        console.error(error);
+        return { trimmedJsonInput, sections: [], error: error.message || "Enter valid JSON." };
+    }
+}
 
 export function buildOutlinePayload({
     topicText,
@@ -18,8 +57,8 @@ export function buildOutlinePayload({
     let userSummary = "";
     let outlineGeneratePayload = null;
 
-    const subject_exclusions = (avoidTopics || "").split(",").map(s => s.trim()).filter(Boolean);
-    const subject_inclusions = (includeTopics || "").split(",").map(s => s.trim()).filter(Boolean);
+    const subject_exclusions = parseTopicsList(avoidTopics);
+    const subject_inclusions = parseTopicsList(includeTopics);
 
     if (outlineInputMode === "lines") {
         const normalizedSections = outlineSections
@@ -54,46 +93,21 @@ export function buildOutlinePayload({
         outlineGeneratePayload.subject_exclusions = subject_exclusions;
         outlineGeneratePayload.subject_inclusions = subject_inclusions;
     } else {
-        const trimmedInput = outlineJsonInput.trim();
-        if (!trimmedInput) {
+        const { trimmedJsonInput, sections, error } = validateJsonOutlineInput(outlineJsonInput);
+        if (!trimmedJsonInput) {
             return { error: "Paste JSON with sections and subsections." };
         }
-        let normalizedJsonSections = [];
-        try {
-            const parsed = JSON.parse(trimmedInput);
-            if (
-                !parsed ||
-                typeof parsed !== "object" ||
-                !Array.isArray(parsed.sections) ||
-                !parsed.sections.length
-            ) {
-                return { error: "JSON must include a sections array." };
-            }
-            const invalidSection = parsed.sections.find(
-                (section) =>
-                    !section ||
-                    typeof section.title !== "string" ||
-                    !section.title.trim() ||
-                    !Array.isArray(section.subsections)
-            );
-            if (invalidSection) {
-                return { error: "Each JSON section needs a title." };
-            }
-            normalizedJsonSections = parsed.sections.map((section) => ({
-                title: section.title.trim(),
-                subsections: section.subsections
-                    .map((entry) => (entry || "").trim())
-                    .filter(Boolean),
-            }));
-        } catch (error) {
-            console.error(error);
-            return { error: "Fix the JSON before continuing." };
+        if (error) {
+            return { error };
         }
-        outlineBrief = `Outline topic: ${topicText}\n\nUse this JSON:\n${trimmedInput}`;
+        if (!sections.length) {
+            return { error: "JSON must include a sections array." };
+        }
+        outlineBrief = `Outline topic: ${topicText}\n\nUse this JSON:\n${trimmedJsonInput}`;
         userSummary = outlineBrief;
         outlineGeneratePayload = buildOutlineGeneratePayload(
             topicText,
-            normalizedJsonSections,
+            sections,
             models
         );
         outlineGeneratePayload.subject_exclusions = subject_exclusions;
@@ -117,6 +131,19 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
     const [outlineError, setOutlineError] = useState("");
     const [avoidTopics, setAvoidTopics] = useState("");
     const [includeTopics, setIncludeTopics] = useState("");
+
+    const jsonValidation = useMemo(
+        () => validateJsonOutlineInput(outlineJsonInput),
+        [outlineJsonInput]
+    );
+
+    const jsonValidationError = outlineInputMode === "json" ? jsonValidation.error : "";
+    const trimmedJsonInput = jsonValidation.trimmedJsonInput;
+    const normalizedOutlineTopic = outlineTopic.trim();
+    const lineModeValidity = outlineSections.every((section) => section.title.trim());
+    const isLineModeValid = Boolean(normalizedOutlineTopic && lineModeValidity);
+    const isJsonModeValid = Boolean(normalizedOutlineTopic && trimmedJsonInput && !jsonValidationError);
+    const isOutlineFormValid = outlineInputMode === "lines" ? isLineModeValid : isJsonModeValid;
 
     const clearOutlineError = useCallback(() => setOutlineError(""), []);
 
@@ -277,6 +304,9 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
         setOutlineJsonInput: setOutlineJsonInputSafe,
         outlineError,
         setOutlineError,
+        trimmedJsonInput,
+        jsonValidationError,
+        isOutlineFormValid,
         resetOutlineForm,
         handleAddOutlineSection,
         handleRemoveOutlineSection,
