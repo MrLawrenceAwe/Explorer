@@ -29,28 +29,37 @@ export function ReportsList({ savedReports, onReportSelect, handleReportRemove, 
                     <ul className="sidebar-list" id="sidebar-saved-reports">
                         {generatingReport && (
                             <li key="generating" className="sidebar-entry-wrapper">
+                                {/*
+                                  Use a robust title fallback so the button never renders empty
+                                  when topic strings are missing.
+                                */}
                                 <button
                                     type="button"
                                     className={`sidebar-entry sidebar-entry--report${generatingReport.isGenerating ? ' sidebar-entry--generating' : ''}`}
                                     onClick={onGeneratingReportSelect}
-                                    aria-label={`View ${generatingReport.isGenerating ? 'generating' : 'active'} report ${generatingReport.topic}`}
+                                    aria-label={`View ${generatingReport.isGenerating ? 'generating' : 'active'} report ${generatingReport.topic || generatingReport.title || generatingReport.preview || 'Report'}`}
                                 >
                                     <span className="sidebar-entry__eyebrow">{generatingReport.isGenerating ? 'Generating…' : 'Active Session'}</span>
-                                    <span className="sidebar-entry__title">{generatingReport.topic}</span>
+                                    <span className="sidebar-entry__title">
+                                        {generatingReport.topic || generatingReport.title || generatingReport.preview || 'Report'}
+                                    </span>
                                     {generatingReport.isGenerating && <div className="sidebar-entry__spinner" />}
                                 </button>
                             </li>
                         )}
                         {savedReports.map((report) => (
                             <li key={report.id} className="sidebar-entry-wrapper">
+                                {/*
+                                  Fallback to title/preview so empty topics still render text.
+                                */}
                                 <button
                                     type="button"
                                     className="sidebar-entry sidebar-entry--report"
                                     onClick={() => onReportSelect?.(report)}
-                                    aria-label={`Open report ${report.title || report.topic}`}
+                                    aria-label={`Open report ${report.title || report.topic || 'report'}`}
                                 >
                                     <span className="sidebar-entry__eyebrow">Report</span>
-                                    <span className="sidebar-entry__title">{report.topic}</span>
+                                    <span className="sidebar-entry__title">{report.title || report.topic || report.preview || 'Report'}</span>
                                 </button>
                                 <button
                                     type="button"
