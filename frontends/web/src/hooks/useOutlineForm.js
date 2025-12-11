@@ -3,52 +3,16 @@ import {
     createEmptyOutlineSection,
     DEFAULT_OUTLINE_JSON,
     buildOutlineGeneratePayload,
+    normalizeOutlineSections,
     parseTopicsList,
+    validateOutlineJsonInput,
 } from '../utils/text';
-
-function validateJsonOutlineInput(outlineJsonInput) {
-    const trimmedJsonInput = outlineJsonInput.trim();
-    if (!trimmedJsonInput) {
-        return { trimmedJsonInput, sections: [], error: "" };
-    }
-    try {
-        const parsed = JSON.parse(trimmedJsonInput);
-        if (
-            !parsed ||
-            typeof parsed !== "object" ||
-            !Array.isArray(parsed.sections) ||
-            !parsed.sections.length
-        ) {
-            return { trimmedJsonInput, sections: [], error: "JSON must include a sections array." };
-        }
-        const invalidSection = parsed.sections.find(
-            (section) =>
-                !section ||
-                typeof section.title !== "string" ||
-                !section.title.trim() ||
-                !Array.isArray(section.subsections)
-        );
-        if (invalidSection) {
-            return { trimmedJsonInput, sections: [], error: "Each JSON section needs a title." };
-        }
-        const sections = parsed.sections.map((section) => ({
-            title: section.title.trim(),
-            subsections: section.subsections
-                .map((entry) => (entry || "").trim())
-                .filter(Boolean),
-        }));
-        return { trimmedJsonInput, sections, error: "" };
-    } catch (error) {
-        console.error(error);
-        return { trimmedJsonInput, sections: [], error: error.message || "Enter valid JSON." };
-    }
-}
 
 export function buildOutlinePayload({
     topicText,
     outlineInputMode,
     outlineSections,
-    outlineJsonInput,
+    jsonValidation,
     models,
     avoidTopics,
     includeTopics,
@@ -61,14 +25,7 @@ export function buildOutlinePayload({
     const subject_inclusions = parseTopicsList(includeTopics);
 
     if (outlineInputMode === "lines") {
-        const normalizedSections = outlineSections
-            .map((section) => ({
-                title: section.title.trim(),
-                subsections: section.subsections
-                    .map((entry) => entry.trim())
-                    .filter(Boolean),
-            }))
-            .filter((section) => section.title);
+        const normalizedSections = normalizeOutlineSections(outlineSections);
         if (!normalizedSections.length) {
             return { error: "Add at least one section." };
         }
@@ -93,7 +50,7 @@ export function buildOutlinePayload({
         outlineGeneratePayload.subject_exclusions = subject_exclusions;
         outlineGeneratePayload.subject_inclusions = subject_inclusions;
     } else {
-        const { trimmedJsonInput, sections, error } = validateJsonOutlineInput(outlineJsonInput);
+        const { trimmedJsonInput, sections, error } = jsonValidation || {};
         if (!trimmedJsonInput) {
             return { error: "Paste JSON with sections and subsections." };
         }
@@ -121,7 +78,7 @@ export function buildOutlinePayload({
     };
 }
 
-export function useOutlineForm({ isRunning, appendMessage, onGenerate, models }) {
+export function useOutlineForm({ isRunning, appendMessage, removeMessages, onGenerate, models }) {
     const [outlineTopic, setOutlineTopic] = useState("");
     const [outlineInputMode, setOutlineInputMode] = useState("lines");
     const [outlineSections, setOutlineSections] = useState(() => [
@@ -133,7 +90,7 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
     const [includeTopics, setIncludeTopics] = useState("");
 
     const jsonValidation = useMemo(
-        () => validateJsonOutlineInput(outlineJsonInput),
+        () => validateOutlineJsonInput(outlineJsonInput),
         [outlineJsonInput]
     );
 
@@ -147,6 +104,14 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
 
     const clearOutlineError = useCallback(() => setOutlineError(""), []);
 
+    const updateSections = useCallback(
+        (updater) => {
+            clearOutlineError();
+            setOutlineSections((current) => updater(current));
+        },
+        [clearOutlineError, setOutlineSections]
+    );
+
     const resetOutlineForm = useCallback(() => {
         clearOutlineError();
         setOutlineTopic("");
@@ -157,31 +122,27 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
     }, [clearOutlineError]);
 
     const handleAddOutlineSection = useCallback(() => {
-        clearOutlineError();
-        setOutlineSections((current) => [...current, createEmptyOutlineSection()]);
-    }, [clearOutlineError]);
+        updateSections((current) => [...current, createEmptyOutlineSection()]);
+    }, [updateSections]);
 
     const handleRemoveOutlineSection = useCallback((sectionId) => {
-        clearOutlineError();
-        setOutlineSections((current) =>
+        updateSections((current) =>
             current.length === 1
                 ? current
                 : current.filter((section) => section.id !== sectionId)
         );
-    }, [clearOutlineError]);
+    }, [updateSections]);
 
     const handleOutlineSectionTitleChange = useCallback((sectionId, value) => {
-        clearOutlineError();
-        setOutlineSections((current) =>
+        updateSections((current) =>
             current.map((section) =>
                 section.id === sectionId ? { ...section, title: value } : section
             )
         );
-    }, [clearOutlineError]);
+    }, [updateSections]);
 
     const handleOutlineSubsectionChange = useCallback((sectionId, index, value) => {
-        clearOutlineError();
-        setOutlineSections((current) =>
+        updateSections((current) =>
             current.map((section) => {
                 if (section.id !== sectionId) return section;
                 const updated = [...section.subsections];
@@ -189,29 +150,46 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
                 return { ...section, subsections: updated };
             })
         );
-    }, [clearOutlineError]);
+    }, [updateSections]);
 
     const handleAddSubsectionLine = useCallback((sectionId) => {
-        clearOutlineError();
-        setOutlineSections((current) =>
+        updateSections((current) =>
             current.map((section) =>
                 section.id === sectionId
                     ? { ...section, subsections: [...section.subsections, ""] }
                     : section
             )
         );
-    }, [clearOutlineError]);
+    }, [updateSections]);
 
     const handleRemoveSubsectionLine = useCallback((sectionId, index) => {
-        clearOutlineError();
-        setOutlineSections((current) =>
+        updateSections((current) =>
             current.map((section) => {
                 if (section.id !== sectionId) return section;
                 const updated = section.subsections.filter((_, idx) => idx !== index);
                 return { ...section, subsections: updated };
             })
         );
-    }, [clearOutlineError]);
+    }, [updateSections]);
+
+    const appendOutlineMessages = useCallback(
+        (assistantId, userSummary, topicText) => {
+            appendMessage({
+                id: `${assistantId}-user`,
+                role: "user",
+                content: userSummary,
+                variant: "outline",
+            });
+            appendMessage({
+                id: assistantId,
+                role: "assistant",
+                content: "",
+                variant: "outline",
+                reportTopic: topicText,
+            });
+        },
+        [appendMessage]
+    );
 
     const handleOutlineSubmit = useCallback(
         async (event) => {
@@ -228,7 +206,7 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
                 topicText,
                 outlineInputMode,
                 outlineSections,
-                outlineJsonInput,
+                jsonValidation,
                 models,
                 avoidTopics,
                 includeTopics,
@@ -245,36 +223,37 @@ export function useOutlineForm({ isRunning, appendMessage, onGenerate, models })
             }
 
             const assistantId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-            appendMessage({
-                id: `${assistantId}-user`,
-                role: "user",
-                content: userSummary,
-                variant: "outline",
-            });
-            appendMessage({
-                id: assistantId,
-                role: "assistant",
-                content: "",
-                variant: "outline",
-                reportTopic: topicText,
-            });
+            appendOutlineMessages(assistantId, userSummary, topicText);
             setOutlineError("");
 
-            if (onGenerate) {
-                await onGenerate(payload, assistantId, topicText);
+            let wasSuccessful = true;
+            try {
+                if (onGenerate) {
+                    wasSuccessful = await onGenerate(payload, assistantId, topicText);
+                }
+            } catch (generateError) {
+                console.error(generateError);
+                setOutlineError(generateError.message || "Unable to prepare the outline request.");
+                wasSuccessful = false;
+            }
+
+            if (!wasSuccessful && removeMessages) {
+                setOutlineError((current) => current || "Report generation did not finish.");
+                removeMessages([`${assistantId}-user`, assistantId]);
             }
         },
         [
-            appendMessage,
             isRunning,
             outlineInputMode,
-            outlineJsonInput,
+            jsonValidation,
             outlineSections,
             outlineTopic,
             onGenerate,
             models,
             avoidTopics,
             includeTopics,
+            appendOutlineMessages,
+            removeMessages,
         ]
     );
 

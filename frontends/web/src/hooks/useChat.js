@@ -46,6 +46,11 @@ export function useChat(apiBase, rememberReport) {
         setMessages((current) => [...current, message]);
     }, []);
 
+    const removeMessages = useCallback((ids) => {
+        if (!ids || !ids.length) return;
+        setMessages((current) => current.filter((message) => !ids.includes(message.id)));
+    }, []);
+
     const runReportFlow = useCallback(
         async (generateRequest, assistantId, summaryLabel) => {
             abortRef.current = new AbortController();
@@ -182,6 +187,7 @@ export function useChat(apiBase, rememberReport) {
         setIsRunning,
         runReportFlow,
         appendMessage,
+        removeMessages,
         stopGeneration,
         abortRef
     };

@@ -92,6 +92,7 @@ export function useAppProps() {
         user: appState.user,
         isRunning: chat.isRunning,
         appendMessage: chat.appendMessage,
+        removeMessages: chat.removeMessages,
         modelsPayload: settings.modelsPayload,
         setActiveReport: appState.setActiveReport,
         setIsRunning: chat.setIsRunning,

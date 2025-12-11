@@ -5,6 +5,7 @@ export function useOutlineController({
     user,
     isRunning,
     appendMessage,
+    removeMessages,
     modelsPayload,
     setActiveReport,
     setIsRunning,
@@ -14,6 +15,7 @@ export function useOutlineController({
     const outline = useOutlineForm({
         isRunning,
         appendMessage,
+        removeMessages,
         models: modelsPayload,
         onGenerate: async (payload, assistantId, topicText) => {
             setActiveReport(null);

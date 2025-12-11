@@ -29,7 +29,14 @@ export function useMainViewState({
 
     const generatingReport = useMemo(() => {
         if (!isRunning && (!hasMessages || !isHomeView)) return null;
-        const assistantMsg = [...messages].reverse().find((m) => m.role === "assistant" && m.reportTopic);
+        let assistantMsg = null;
+        for (let index = messages.length - 1; index >= 0; index -= 1) {
+            const message = messages[index];
+            if (message.role === "assistant" && message.reportTopic) {
+                assistantMsg = message;
+                break;
+            }
+        }
         if (assistantMsg) {
             const isSaved = savedReports.some((r) => r.topic === assistantMsg.reportTopic);
             if (isSaved && !isRunning) return null;

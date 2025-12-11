@@ -1,30 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { cleanHeadingForTopic, copyTextToClipboard, downloadTextFile } from '../utils/text';
-
-function normalizeOutlineSections(outlineCandidate) {
-    const sections = Array.isArray(outlineCandidate?.sections)
-        ? outlineCandidate.sections
-        : Array.isArray(outlineCandidate)
-            ? outlineCandidate
-            : [];
-    const seen = new Set();
-    return sections
-        .map((section) => {
-            const title = (section?.title || "").trim();
-            if (!title) return null;
-            const subsections = Array.isArray(section.subsections)
-                ? section.subsections.map((entry) => (entry || "").trim()).filter(Boolean)
-                : [];
-            return { title, subsections };
-        })
-        .filter((section) => {
-            if (!section) return false;
-            const key = section.title.toLowerCase();
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-}
+import { cleanHeadingForTopic, copyTextToClipboard, downloadTextFile, normalizeOutlineSections } from '../utils/text';
 
 function extractOutlineFromContent(content) {
     const safeContent = (content || "").trim();
