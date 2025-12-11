@@ -6,10 +6,10 @@ import { useCollections } from './useCollections';
 export function useSavedCollectionsController({ apiBase, user }) {
     const savedData = useSavedData({ apiBase, user });
 
-    const handleSavedDataError = useCallback((msg) => savedData.setError(msg), [savedData]);
+    const handleSavedDataError = useCallback((msg) => savedData.setError(msg), [savedData.setError]);
     const handleTopicMoved = useCallback(
         (updatedTopic) => savedData.updateTopicCollection(updatedTopic.id, updatedTopic.collectionId),
-        [savedData]
+        [savedData.updateTopicCollection]
     );
 
     const collections = useCollections({
