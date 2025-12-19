@@ -9,12 +9,18 @@ from backend.storage import GeneratedReportStore
 from backend.utils.slug_utils import slugify
 from backend.utils.user_utils import get_or_create_user
 
+_DEFAULT_USER_EMAIL_ENV = "EXPLORER_DEFAULT_USER_EMAIL"
+
 def normalize_user(user_email: Optional[str], username: Optional[str]) -> Tuple[str, Optional[str]]:
-    email = (user_email or "").strip()
+    fallback_email = os.environ.get(_DEFAULT_USER_EMAIL_ENV, "")
+    email = (user_email or fallback_email or "").strip()
     if not email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="user_email is required for this endpoint.",
+            detail=(
+                "user_email is required for this endpoint. Set EXPLORER_DEFAULT_USER_EMAIL "
+                "to use a server-side default."
+            ),
         )
     normalized_username = (username or "").strip() or None
     return email, normalized_username

@@ -20,7 +20,10 @@ router = APIRouter()
 
 @router.get("/saved_topics", response_model=List[SavedTopicResponse])
 def list_saved_topics(
-    user_email: EmailStr = Query(..., description="Email used to scope results to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope results; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -50,7 +53,10 @@ def list_saved_topics(
 @router.post("/saved_topics", response_model=SavedTopicResponse, status_code=status.HTTP_201_CREATED)
 def create_saved_topic(
     payload: CreateSavedTopicRequest,
-    user_email: EmailStr = Query(..., description="Email used to scope the new topic to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the new topic; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -126,7 +132,10 @@ def create_saved_topic(
 @router.delete("/saved_topics/{topic_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_saved_topic(
     topic_id: uuid.UUID,
-    user_email: EmailStr = Query(..., description="Email used to scope the delete to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the delete; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -152,7 +161,10 @@ def delete_saved_topic(
 def update_saved_topic(
     topic_id: uuid.UUID,
     payload: UpdateSavedTopicRequest,
-    user_email: EmailStr = Query(..., description="Email used to scope the update to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the update; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):

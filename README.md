@@ -21,7 +21,8 @@ Explorer relies on a handful of environment variables. Export them _in the shell
 - `OPENAI_BASE_URL` — optional; point at a proxy or compatible gateway.
 - `EXPLORER_DATABASE_URL` — optional; override the default `sqlite:///data/reportgen.db`.
 - `EXPLORER_REPORT_STORAGE_DIR` — optional; persist artifacts somewhere other than `data/reports`.
-- `EXPLORER_DEFAULT_USER_EMAIL` — optional; change the fallback user for CLI runs.
+- `EXPLORER_DEFAULT_USER_EMAIL` — optional; fallback user for API/CLI requests when `user_email` is omitted.
+- `EXPLORER_REPORT_STORAGE_MODE` — optional; set to `file` to persist report artifacts without writing to the database.
 - `EXPLORER_DATABASE_URL` — optional; override the DB location (defaults to `sqlite:///data/reportgen.db`).
 - `EXPLORER_DISABLE_STORAGE` — optional; when set to `1`/`true`, skip writing reports to the DB and filesystem (useful for local, single-user runs where persistence is unnecessary).
 
@@ -54,6 +55,30 @@ pip install -r requirements.txt
 # 3) Launch the API (hot reload for local dev)
 uvicorn backend.api.app:app --reload --port 8000
 ```
+
+---
+
+## Actions schema
+
+The OpenAPI document to paste into ChatGPT Actions lives at `docs/actions-openapi.yaml`. Update the `servers` URL to match your deployment.
+
+For single-user workflows, set `EXPLORER_DEFAULT_USER_EMAIL` and omit `user_email` from action calls.
+If `EXPLORER_REPORT_STORAGE_MODE=file`, report list endpoints will not include file-only runs (they are only written to disk).
+
+---
+
+## Knowledge file workflow (no API)
+
+If you want the GPT to work only from a static knowledge file (no Actions/API), keep a JSON file with your topics and re-upload it whenever you update your list.
+
+- Schema: `docs/topics.schema.json`
+- Example: `docs/topics.example.json`
+
+Suggested flow:
+
+1) Copy `docs/topics.example.json` to a working file and edit topics locally.
+2) Upload the file as GPT Knowledge.
+3) When you add or edit topics, update the file and re-upload it.
 
 ---
 

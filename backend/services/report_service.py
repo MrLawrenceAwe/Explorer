@@ -23,7 +23,7 @@ from backend.utils.prompts import (
     build_section_writer_prompt,
 )
 from .report_state import NumberedSection, WrittenSection, WriterState
-from backend.storage import GeneratedReportStore, StoredReportHandle
+from backend.storage import FileOnlyReportStore, GeneratedReportStore, StoredReportHandle
 from backend.utils.summary import should_elevate_context
 
 
@@ -32,7 +32,7 @@ class ReportGeneratorService:
         self,
         outline_service: Optional[OutlineService] = None,
         text_client: Optional[OpenAITextClient] = None,
-        report_store: Optional[GeneratedReportStore] = None,
+        report_store: Optional[GeneratedReportStore | FileOnlyReportStore] = None,
     ) -> None:
         self.text_client = text_client or get_default_text_client()
         self.outline_service = outline_service or OutlineService(

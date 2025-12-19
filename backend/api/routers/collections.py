@@ -37,7 +37,10 @@ def _build_collection_response(
 
 @router.get("/collections", response_model=List[TopicCollectionResponse])
 def list_collections(
-    user_email: EmailStr = Query(..., description="Email used to scope results to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope results; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -77,7 +80,10 @@ def list_collections(
 @router.post("/collections", response_model=TopicCollectionResponse, status_code=status.HTTP_201_CREATED)
 def create_collection(
     payload: CreateTopicCollectionRequest,
-    user_email: EmailStr = Query(..., description="Email used to scope the new collection to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the new collection; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -136,7 +142,10 @@ def create_collection(
 @router.get("/collections/{collection_id}", response_model=TopicCollectionResponse)
 def get_collection(
     collection_id: uuid.UUID,
-    user_email: EmailStr = Query(..., description="Email used to scope the request to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the request; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -162,7 +171,10 @@ def get_collection(
 def update_collection(
     collection_id: uuid.UUID,
     payload: UpdateTopicCollectionRequest,
-    user_email: EmailStr = Query(..., description="Email used to scope the update to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the update; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
@@ -218,7 +230,10 @@ def update_collection(
 @router.delete("/collections/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_collection(
     collection_id: uuid.UUID,
-    user_email: EmailStr = Query(..., description="Email used to scope the delete to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the delete; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):

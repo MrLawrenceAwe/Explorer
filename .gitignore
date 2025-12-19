@@ -13,3 +13,6 @@ data/reportgen.db
 data/reportgen.db.migration-lock
 .vscode/settings.json
 DEPLOYMENT_NOTES.local.md
+docs/actions-openapi.yaml
+docs/topics.example.json
+docs/topics.schema.json

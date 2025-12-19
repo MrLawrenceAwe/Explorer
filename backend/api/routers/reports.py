@@ -17,7 +17,7 @@ from backend.api.dependencies import (
 from backend.db import Report, session_scope
 from backend.schemas import ReportResponse, GenerateRequest
 from backend.services.report_service import ReportGeneratorService
-from backend.storage import GeneratedReportStore
+from backend.storage import FileOnlyReportStore, GeneratedReportStore
 from backend.utils.api_helpers import (
     normalize_user,
     get_or_create_user,
@@ -53,11 +53,14 @@ def generate_report(
 
 @router.get("/reports", response_model=List[ReportResponse])
 def list_reports(
-    user_email: EmailStr = Query(..., description="Email used to scope results to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope results; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     include_content: bool = Query(False, description="When true, includes report content from storage."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
-    report_store: Optional[GeneratedReportStore] = Depends(get_report_store),
+    report_store: Optional[GeneratedReportStore | FileOnlyReportStore] = Depends(get_report_store),
 ):
     user_email, username = normalize_user(user_email, username)
     base_dir = resolve_base_dir(report_store)
@@ -93,10 +96,13 @@ def list_reports(
 @router.get("/reports/{report_id}", response_model=ReportResponse)
 def get_report(
     report_id: uuid.UUID,
-    user_email: EmailStr = Query(..., description="Email used to scope the request to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the request; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
-    report_store: Optional[GeneratedReportStore] = Depends(get_report_store),
+    report_store: Optional[GeneratedReportStore | FileOnlyReportStore] = Depends(get_report_store),
 ):
     user_email, username = normalize_user(user_email, username)
     base_dir = resolve_base_dir(report_store)
@@ -124,7 +130,10 @@ def get_report(
 @router.delete("/reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_report(
     report_id: uuid.UUID,
-    user_email: EmailStr = Query(..., description="Email used to scope the delete to the current user."),
+    user_email: Optional[EmailStr] = Query(
+        None,
+        description="Optional email used to scope the delete; defaults to EXPLORER_DEFAULT_USER_EMAIL.",
+    ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ):
