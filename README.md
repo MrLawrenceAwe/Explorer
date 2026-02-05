@@ -58,6 +58,70 @@ uvicorn backend.api.app:app --reload --port 8000
 
 ---
 
+## ChatGPT App (MCP)
+
+This repo includes a minimal MCP server (SSE) plus a tiny Apps SDK frontend for local dev. MCP servers are transport-agnostic and can be served over SSE or Streamable HTTP; this setup uses SSE for compatibility with ChatGPT Apps.
+
+### 1) Start the MCP server
+
+```bash
+# From repo root
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+export OPENAI_API_KEY="sk-your-key"
+export EXPLORER_DEFAULT_USER_EMAIL="you@example.com"
+
+uvicorn mcp_server.app:app --reload --port 8787
+```
+
+MCP endpoint for ChatGPT “New App” UI:
+
+```
+http://localhost:8787/sse
+```
+
+ChatGPT requires HTTPS for deployed MCP servers; local HTTP is fine for dev.
+
+### 2) Start the Apps SDK frontend
+
+```bash
+cd app
+npm install
+APP_MCP_URL="http://localhost:8787/sse" npm run dev
+```
+
+The frontend connects to your MCP server, lists tools, and lets you run them with basic JSON-schema-driven forms. The Apps SDK uses the MCP Apps bridge (and `window.openai`) when running inside ChatGPT; locally it connects directly to your MCP server.
+
+### Local dev via HTTPS tunnel (for ChatGPT)
+
+ChatGPT requires HTTPS for MCP servers. For local development, expose your local server using a tunnel and paste the HTTPS URL into ChatGPT. citeturn0search1turn0search2
+
+Example using ngrok:
+
+```bash
+# from repo root (MCP server on port 8787)
+scripts/tunnel_ngrok.sh 8787 /sse
+```
+
+Example using Cloudflare Tunnel:
+
+```bash
+scripts/tunnel_cloudflared.sh 8787
+```
+
+When the tunnel starts, use the HTTPS URL it prints with the `/sse` path (e.g. `https://<subdomain>.ngrok.app/sse`). citeturn0search0turn0search1
+
+### Hosting options (production)
+
+For production, host the MCP server on a stable, low-latency HTTPS endpoint (Cloudflare Workers, Fly.io, Vercel, AWS, etc.). citeturn0search1
+
+### Next steps
+
+Add or adjust tools in `mcp_server/app.py` as the backend evolves (e.g., new reports, topics, or collections capabilities).
+
+---
+
 ## Actions schema
 
 The OpenAPI document to paste into ChatGPT Actions lives at `docs/actions-openapi.yaml`. Update the `servers` URL to match your deployment.

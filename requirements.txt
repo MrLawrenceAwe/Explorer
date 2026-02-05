@@ -12,3 +12,6 @@ SQLAlchemy>=2.0.32,<3.0
 psycopg[binary]>=3.1,<4.0
 # SQLAlchemy defaults to psycopg2 unless the URL includes +psycopg; keep both drivers available.
 psycopg2-binary>=2.9,<3.0
+
+# MCP server
+mcp>=1.2.0

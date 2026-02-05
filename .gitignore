@@ -16,3 +16,6 @@ DEPLOYMENT_NOTES.local.md
 docs/actions-openapi.yaml
 docs/topics.example.json
 docs/topics.schema.json
+docs/Topics.docx
+app/node_modules/
+app/dist/
