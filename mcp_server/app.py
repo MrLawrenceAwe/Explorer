@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, Request
+from starlette.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -12,11 +10,6 @@ try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:  # pragma: no cover - fallback for older SDK layouts
     from mcp.server import FastMCP  # type: ignore
-
-try:
-    from mcp.server.sse import SseServerTransport
-except ImportError:  # pragma: no cover - fallback for older SDK layouts
-    from mcp.server.transports.sse import SseServerTransport  # type: ignore
 
 from backend.api.dependencies import (
     get_outline_service,
@@ -66,24 +59,12 @@ class ReportGetRequest(BaseModel):
     )
 
 
-mcp = FastMCP("Explorer MCP", version="0.1.0")
-app = FastAPI(title="Explorer MCP")
-_sse_transport = SseServerTransport("/message")
+mcp = FastMCP("Explorer MCP")
 
 
-@app.get("/healthz")
-async def healthz() -> Dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.get("/sse")
-async def handle_sse(request: Request):
-    return await _sse_transport.handle_sse(request, mcp)
-
-
-@app.post("/message")
-async def handle_message(request: Request):
-    return await _sse_transport.handle_message(request, mcp)
+@mcp.custom_route("/healthz", methods=["GET"], include_in_schema=False)
+async def healthz(_request):
+    return JSONResponse({"status": "ok"})
 
 
 @mcp.tool(name="outline.generate", description="Generate an outline from a topic.")
@@ -167,5 +148,7 @@ def _build_report_response(
     )
     return response.model_dump()
 
+
+app = mcp.sse_app()
 
 __all__ = ["app", "mcp"]
