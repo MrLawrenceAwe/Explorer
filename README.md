@@ -95,7 +95,7 @@ The frontend connects to your MCP server, lists tools, and lets you run them wit
 
 ### Local dev via HTTPS tunnel (for ChatGPT)
 
-ChatGPT requires HTTPS for MCP servers. For local development, expose your local server using a tunnel and paste the HTTPS URL into ChatGPT. citeturn0search1turn0search2
+ChatGPT requires HTTPS for MCP servers. For local development, expose your local server using a tunnel and paste the HTTPS URL into ChatGPT.
 
 Example using ngrok:
 
@@ -110,11 +110,11 @@ Example using Cloudflare Tunnel:
 scripts/tunnel_cloudflared.sh 8787
 ```
 
-When the tunnel starts, use the HTTPS URL it prints with the `/sse` path (e.g. `https://<subdomain>.ngrok.app/sse`). citeturn0search0turn0search1
+When the tunnel starts, use the HTTPS URL it prints with the `/sse` path (e.g. `https://<subdomain>.ngrok.app/sse`).
 
 ### Hosting options (production)
 
-For production, host the MCP server on a stable, low-latency HTTPS endpoint (Cloudflare Workers, Fly.io, Vercel, AWS, etc.). citeturn0search1
+For production, host the MCP server on a stable, low-latency HTTPS endpoint (Cloudflare Workers, Fly.io, Vercel, AWS, etc.).
 
 ### Next steps
 
