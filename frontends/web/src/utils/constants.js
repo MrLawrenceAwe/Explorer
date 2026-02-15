@@ -1,4 +1,4 @@
-export const STORAGE_KEY = "explorer-api-base";
+export const API_BASE_STORAGE_KEY = "explorer-api-base";
 export const SAVED_TOPICS_KEY = "explorer-saved-topics";
 export const SAVED_REPORTS_KEY = "explorer-saved-reports";
 export const COLLECTIONS_STORAGE_KEY = "explorer-collections";

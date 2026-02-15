@@ -1,6 +1,6 @@
 import {
     DEFAULT_API_BASE,
-    STORAGE_KEY,
+    API_BASE_STORAGE_KEY,
     USER_EMAIL_STORAGE_KEY,
     USERNAME_STORAGE_KEY,
 } from "./constants";
@@ -9,9 +9,9 @@ export function loadApiBase() {
     const params = new URL(window.location.href).searchParams;
     const paramBase = params.get("apiBase");
     if (paramBase && paramBase.trim()) {
-        localStorage.setItem(STORAGE_KEY, paramBase.trim());
+        localStorage.setItem(API_BASE_STORAGE_KEY, paramBase.trim());
     }
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(API_BASE_STORAGE_KEY);
     if (stored) return stored;
 
     const envBase = typeof import.meta !== "undefined" ? import.meta.env?.VITE_API_BASE : undefined;

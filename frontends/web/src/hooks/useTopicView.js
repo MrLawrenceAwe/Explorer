@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchTopicSuggestions } from '../utils/apiClient';
-import { parseTopicsList } from '../utils/text';
+import { parseTopicsList } from '../utils/reportTextUtils';
 
 export function useTopicView({
     apiBase,
@@ -9,8 +9,8 @@ export function useTopicView({
     isRunning,
     runTopicPrompt,
 }) {
-    const [topicViewTopic, setTopicViewTopic] = useState("");
-    const [topicViewDraft, setTopicViewDraft] = useState("");
+    const [activeTopic, setActiveTopic] = useState("");
+    const [draftTopic, setDraftTopic] = useState("");
     const [isTopicEditing, setIsTopicEditing] = useState(false);
     const [topicSuggestions, setTopicSuggestions] = useState([]);
     const [topicSuggestionsLoading, setTopicSuggestionsLoading] = useState(false);
@@ -35,12 +35,12 @@ export function useTopicView({
     }, [isTopicEditing]);
 
     useEffect(() => {
-        if (!topicViewTopic || suggestionsPaused) return;
+        if (!activeTopic || suggestionsPaused) return;
         const controller = new AbortController();
         setTopicSuggestionsLoading(true);
         const loadSuggestions = async () => {
             const remote = await fetchTopicSuggestions(apiBase, {
-                topic: topicViewTopic,
+                topic: activeTopic,
                 seeds: [],
                 includeReportHeadings: false,
                 model: suggestionModel,
@@ -52,14 +52,14 @@ export function useTopicView({
         };
         loadSuggestions().catch(() => setTopicSuggestionsLoading(false));
         return () => controller.abort();
-    }, [apiBase, topicSuggestionsNonce, topicViewTopic, suggestionModel, suggestionsPaused]);
+    }, [apiBase, topicSuggestionsNonce, activeTopic, suggestionModel, suggestionsPaused]);
 
     const openTopicView = useCallback((topic, options = {}) => {
         const normalized = (topic || "").trim();
         if (!normalized) return;
         const pauseSuggestions = Boolean(options.pauseSuggestions);
-        setTopicViewTopic(normalized);
-        setTopicViewDraft(normalized);
+        setActiveTopic(normalized);
+        setDraftTopic(normalized);
         setIsTopicEditing(false);
         setTopicSuggestionsLoading(!pauseSuggestions);
         setSelectedSuggestions([]);
@@ -69,8 +69,8 @@ export function useTopicView({
     }, []);
 
     const closeTopicView = useCallback(() => {
-        setTopicViewTopic("");
-        setTopicViewDraft("");
+        setActiveTopic("");
+        setDraftTopic("");
         setIsTopicEditing(false);
         setTopicSuggestions([]);
         setSelectedSuggestions([]);
@@ -81,35 +81,35 @@ export function useTopicView({
     }, []);
 
     const startTopicEditing = useCallback(() => {
-        if (!topicViewTopic) return;
+        if (!activeTopic) return;
         skipTopicCommitRef.current = false;
-        setTopicViewDraft(topicViewTopic);
+        setDraftTopic(activeTopic);
         setIsTopicEditing(true);
-    }, [topicViewTopic]);
+    }, [activeTopic]);
 
     const cancelTopicEditing = useCallback(() => {
         skipTopicCommitRef.current = true;
-        setTopicViewDraft(topicViewTopic);
+        setDraftTopic(activeTopic);
         setIsTopicEditing(false);
-    }, [topicViewTopic]);
+    }, [activeTopic]);
 
     const commitTopicEdit = useCallback(() => {
         if (skipTopicCommitRef.current) {
             skipTopicCommitRef.current = false;
             return;
         }
-        const normalized = topicViewDraft.trim();
+        const normalized = draftTopic.trim();
         setIsTopicEditing(false);
-        if (normalized && normalized !== topicViewTopic) {
-            setTopicViewTopic(normalized);
-            setTopicViewDraft(normalized);
+        if (normalized && normalized !== activeTopic) {
+            setActiveTopic(normalized);
+            setDraftTopic(normalized);
             setTopicSuggestionsLoading(true);
             setSelectedSuggestions([]);
             setTopicSelectMode(false);
         } else {
-            setTopicViewDraft(topicViewTopic);
+            setDraftTopic(activeTopic);
         }
-    }, [topicViewDraft, topicViewTopic]);
+    }, [draftTopic, activeTopic]);
 
     const handleTopicEditSubmit = useCallback(
         (event) => {
@@ -146,18 +146,18 @@ export function useTopicView({
         [startTopicEditing]
     );
 
-    const handleTopicViewGenerate = useCallback(async () => {
-        if (!topicViewTopic || isRunning) return;
+    const generateTopicReport = useCallback(async () => {
+        if (!activeTopic || isRunning) return;
         closeTopicView();
         const avoid = parseTopicsList(avoidTopics);
         const include = parseTopicsList(includeTopics);
-        await runTopicPrompt(topicViewTopic, { avoid, include });
-    }, [closeTopicView, isRunning, runTopicPrompt, topicViewTopic, avoidTopics, includeTopics]);
+        await runTopicPrompt(activeTopic, { avoid, include });
+    }, [closeTopicView, isRunning, runTopicPrompt, activeTopic, avoidTopics, includeTopics]);
 
     const handleTopicViewSave = useCallback(() => {
-        if (!topicViewTopic) return;
-        rememberTopics([topicViewTopic]);
-    }, [rememberTopics, topicViewTopic]);
+        if (!activeTopic) return;
+        rememberTopics([activeTopic]);
+    }, [rememberTopics, activeTopic]);
 
     const handleSuggestionToggle = useCallback((title) => {
         const normalized = (title || "").trim();
@@ -214,9 +214,9 @@ export function useTopicView({
     }, [topicSelectMode]);
 
     return {
-        topicViewTopic,
-        topicViewDraft,
-        setTopicViewDraft,
+        activeTopic,
+        draftTopic,
+        setDraftTopic,
         isTopicEditing,
         topicSuggestions,
         topicSuggestionsLoading,
@@ -234,7 +234,7 @@ export function useTopicView({
         handleTopicEditBlur,
         handleTopicEditKeyDown,
         handleTopicTitleKeyDown,
-        handleTopicViewGenerate,
+        generateTopicReport,
         handleTopicViewSave,
         handleSuggestionToggle,
         handleSaveSelectedSuggestions,

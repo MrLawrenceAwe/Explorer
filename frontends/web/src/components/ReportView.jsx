@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { cleanHeadingForTopic, copyTextToClipboard, downloadTextFile, normalizeOutlineSections } from '../utils/text';
+import { cleanHeadingForTopic } from '../utils/reportTextUtils';
+import { normalizeOutlineSections } from '../utils/outlineUtils';
+import { copyTextToClipboard, downloadTextFile } from '../utils/clipboardUtils';
 
 function extractOutlineFromContent(content) {
     const safeContent = (content || "").trim();

@@ -98,12 +98,12 @@ class _ReportStreamRunner:
         self._written_sections: List[WrittenSection] = []
         self._resolved_outline: Optional[Outline] = None
 
-    async def _emit_status_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def _emit_status(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return payload
 
     async def run(self) -> AsyncGenerator[Dict[str, Any], None]:
         try:
-            yield await self._emit_status_once({"status": "started"})
+            yield await self._emit_status({"status": "started"})
 
             async for status in self._outline_phase():
                 yield status
@@ -113,13 +113,13 @@ class _ReportStreamRunner:
 
             storage_status = self._prepare_storage(outline)
             if storage_status:
-                yield await self._emit_status_once(storage_status)
+                yield await self._emit_status(storage_status)
 
             numbered_sections = self.service._build_numbered_sections(outline)
             all_section_headers = [entry.title for entry in numbered_sections]
 
             begin_status = self._build_begin_sections_status(outline)
-            yield await self._emit_status_once(begin_status)
+            yield await self._emit_status(begin_status)
 
             async for status in self._write_sections(
                 outline, numbered_sections, all_section_headers
@@ -134,12 +134,12 @@ class _ReportStreamRunner:
 
             finalize_error = self._finalize_report_persistence(assembled_transcript)
             if finalize_error:
-                yield await self._emit_status_once(finalize_error)
+                yield await self._emit_status(finalize_error)
                 return
 
             final_payload = self._build_final_payload(outline, assembled_transcript)
 
-            yield await self._emit_status_once(final_payload)
+            yield await self._emit_status(final_payload)
         except asyncio.CancelledError:
             self._mark_storage_failed("Report generation cancelled")
             raise
@@ -152,7 +152,7 @@ class _ReportStreamRunner:
                 "model": self.outline_spec.model,
             }
             maybe_add_reasoning(outline_status, "reasoning_effort", self.outline_spec)
-            yield await self._emit_status_once(outline_status)
+            yield await self._emit_status(outline_status)
 
             outline_request = self.service.outline_service.build_outline_request(
                 self.request.topic,
@@ -172,7 +172,7 @@ class _ReportStreamRunner:
                     "detail": f"Failed to parse outline JSON: {exception}",
                     "raw_outline": exception.raw_response,
                 }
-                yield await self._emit_status_once(error_status)
+                yield await self._emit_status(error_status)
                 return
 
             outline_ready_status: Dict[str, Any] = {
@@ -184,11 +184,11 @@ class _ReportStreamRunner:
             maybe_add_reasoning(
                 outline_ready_status, "reasoning_effort", self.outline_spec
             )
-            yield await self._emit_status_once(outline_ready_status)
+            yield await self._emit_status(outline_ready_status)
             self._resolved_outline = outline
             return
 
-        yield await self._emit_status_once(
+        yield await self._emit_status(
             {
                 "status": "using_provided_outline",
                 "sections": len(provided_outline.sections),
@@ -231,7 +231,7 @@ class _ReportStreamRunner:
         section_title = section.title
         subsection_titles = section.subsections
 
-        yield await self._emit_status_once(
+        yield await self._emit_status(
             {"status": "writing_section", "section": section_title}
         )
 
@@ -253,13 +253,13 @@ class _ReportStreamRunner:
             writer_prompt,
         )
         for writer_event in writer_events:
-            yield await self._emit_status_once(writer_event)
+            yield await self._emit_status(writer_event)
         if section_text is None:
             return
 
         section_text = enforce_subsection_headings(section_text, subsection_titles)
 
-        yield await self._emit_status_once(
+        yield await self._emit_status(
             {"status": "editing_section", "section": section_title}
         )
         narrated, edit_error = await self._edit_section_body(
@@ -268,7 +268,7 @@ class _ReportStreamRunner:
             section_text,
         )
         if edit_error:
-            yield await self._emit_status_once(edit_error)
+            yield await self._emit_status(edit_error)
             return
 
         cleaned_transcript = self._finalize_section_body(
@@ -282,7 +282,7 @@ class _ReportStreamRunner:
 
         assembled_blocks.append(f"{section_title}\n\n{cleaned_transcript}")
 
-        yield await self._emit_status_once(
+        yield await self._emit_status(
             {"status": "section_complete", "section": section_title}
         )
 

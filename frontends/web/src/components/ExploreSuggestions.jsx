@@ -3,13 +3,13 @@ import React from 'react';
 export function ExploreSuggestions({
     exploreSuggestions,
     exploreLoading,
-    selectedExploreSuggestions,
+    selectedSuggestions,
     exploreSelectMode,
     exploreSelectToggleRef,
     exploreSuggestionsRef,
     handleRefreshExplore,
     handleToggleExploreSuggestion,
-    handleToggleExploreSelectMode,
+    toggleExploreSelectMode,
     handleOpenTopic,
 }) {
     return (
@@ -36,12 +36,12 @@ export function ExploreSuggestions({
                         <button
                             type="button"
                             className={`select-toggle${exploreSelectMode ? " select-toggle--active" : ""}`}
-                            onClick={handleToggleExploreSelectMode}
+                            onClick={toggleExploreSelectMode}
                             aria-pressed={exploreSelectMode}
                             aria-label="Toggle select mode"
                             ref={exploreSelectToggleRef}
                         >
-                            {exploreSelectMode && selectedExploreSuggestions.length ? (
+                            {exploreSelectMode && selectedSuggestions.length ? (
                                 "Save"
                             ) : (
                                 <svg className="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -59,7 +59,7 @@ export function ExploreSuggestions({
             </p>
             <div className="explore__grid" ref={exploreSuggestionsRef}>
                 {exploreSuggestions.map((suggestion) => {
-                    const isSelected = selectedExploreSuggestions.includes(suggestion);
+                    const isSelected = selectedSuggestions.includes(suggestion);
                     return (
                         <button
                             key={suggestion}

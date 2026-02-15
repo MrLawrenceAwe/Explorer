@@ -30,14 +30,14 @@ Examples:
 
 ```bash
 # Disable persistence for a local dev session
-EXPLORER_DISABLE_STORAGE=1 uvicorn backend.api.app:app --reload --port 8000
+EXPLORER_DISABLE_STORAGE=1 uvicorn backend.api.main:app --reload --port 8000
 
 ```
 
 You can also prefix inline commands:
 
 ```bash
-OPENAI_API_KEY="sk-your-key" uvicorn backend.api.app:app --reload --port 8000
+OPENAI_API_KEY="sk-your-key" uvicorn backend.api.main:app --reload --port 8000
 OPENAI_API_KEY="sk-your-key" python -m cli.stream_report --topic "Future of urban farming"
 ```
 
@@ -53,7 +53,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3) Launch the API (hot reload for local dev)
-uvicorn backend.api.app:app --reload --port 8000
+uvicorn backend.api.main:app --reload --port 8000
 ```
 
 ---
@@ -72,7 +72,7 @@ pip install -r requirements.txt
 export OPENAI_API_KEY="sk-your-key"
 export EXPLORER_DEFAULT_USER_EMAIL="you@example.com"
 
-uvicorn mcp_server.app:app --reload --port 8787
+uvicorn mcp_server.main:app --reload --port 8787
 ```
 
 MCP endpoint for ChatGPT “New App” UI:
@@ -86,7 +86,7 @@ ChatGPT requires HTTPS for deployed MCP servers; local HTTP is fine for dev.
 ### 2) Start the Apps SDK frontend
 
 ```bash
-cd app
+cd mcp_tools_ui
 npm install
 APP_MCP_URL="http://localhost:8787/sse" npm run dev
 ```
@@ -118,7 +118,7 @@ For production, host the MCP server on a stable, low-latency HTTPS endpoint (Clo
 
 ### Next steps
 
-Add or adjust tools in `mcp_server/app.py` as the backend evolves (e.g., new reports, topics, or collections capabilities).
+Add or adjust tools in `mcp_server/main.py` as the backend evolves (e.g., new reports, topics, or collections capabilities).
 
 ---
 

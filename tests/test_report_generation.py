@@ -14,7 +14,7 @@ import uvicorn
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
-from backend.api.app import app
+from backend.api.main import app
 from backend.api.dependencies import get_report_service
 from backend.schemas import (
     DEFAULT_TEXT_MODEL,

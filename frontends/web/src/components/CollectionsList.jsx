@@ -37,7 +37,7 @@ export function CollectionsList({
     // Focus input when editing
     useEffect(() => {
         if (editingCollectionId && editInputRef.current) {
-            const collection = collections.find((c) => c.id === editingCollectionId);
+            const collection = collections.find((entry) => entry.id === editingCollectionId);
             if (collection) {
                 setEditName(collection.name);
                 editInputRef.current.focus();
@@ -61,28 +61,28 @@ export function CollectionsList({
         }
     });
 
-    const handleCreateSubmit = (e) => {
-        e.preventDefault();
+    const handleCreateSubmit = (event) => {
+        event.preventDefault();
         if (newCollectionName.trim()) {
             onCreateCollection(newCollectionName.trim());
         }
     };
 
-    const handleEditSubmit = (e) => {
-        e.preventDefault();
+    const handleEditSubmit = (event) => {
+        event.preventDefault();
         if (editName.trim() && editingCollectionId) {
             onUpdateCollection(editingCollectionId, { name: editName.trim() });
         }
     };
 
-    const handleCreateKeyDown = (e) => {
-        if (e.key === 'Escape') {
+    const handleCreateKeyDown = (event) => {
+        if (event.key === 'Escape') {
             onCancelCreating();
         }
     };
 
-    const handleEditKeyDown = (e) => {
-        if (e.key === 'Escape') {
+    const handleEditKeyDown = (event) => {
+        if (event.key === 'Escape') {
             onCancelEditing();
         }
     };
@@ -100,8 +100,8 @@ export function CollectionsList({
             <button
                 type="button"
                 className="collections__topic-remove"
-                onClick={(e) => {
-                    e.stopPropagation();
+                onClick={(event) => {
+                    event.stopPropagation();
                     onTopicRemove(topic.id);
                 }}
                 aria-label={`Remove "${topic.prompt}"`}
@@ -156,7 +156,7 @@ export function CollectionsList({
                         className="collections__input"
                         placeholder="Collection name..."
                         value={newCollectionName}
-                        onChange={(e) => onNewCollectionNameChange(e.target.value)}
+                        onChange={(event) => onNewCollectionNameChange(event.target.value)}
                         onKeyDown={handleCreateKeyDown}
                         onBlur={() => {
                             if (!newCollectionName.trim()) {
@@ -198,7 +198,7 @@ export function CollectionsList({
                                             type="text"
                                             className="collections__input collections__input--inline"
                                             value={editName}
-                                            onChange={(e) => setEditName(e.target.value)}
+                                            onChange={(event) => setEditName(event.target.value)}
                                             onKeyDown={handleEditKeyDown}
                                             onBlur={() => {
                                                 if (editName.trim()) {

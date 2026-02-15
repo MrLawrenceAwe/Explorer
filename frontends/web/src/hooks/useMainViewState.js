@@ -8,16 +8,16 @@ export function useMainViewState({
     messages,
     savedReports,
     savedTopics,
-    topicViewTopic,
+    activeTopic,
     setIsHomeView,
     setMode,
 }) {
     const hasMessages = messages.length > 0;
-    const isTopicViewOpen = Boolean(topicViewTopic);
+    const isTopicViewOpen = Boolean(activeTopic);
 
     const isTopicSaved = useMemo(
-        () => savedTopics.some((entry) => entry.prompt === topicViewTopic),
-        [savedTopics, topicViewTopic]
+        () => savedTopics.some((entry) => entry.prompt === activeTopic),
+        [savedTopics, activeTopic]
     );
 
     const hasCompletedReport = useMemo(
@@ -38,7 +38,7 @@ export function useMainViewState({
             }
         }
         if (assistantMsg) {
-            const isSaved = savedReports.some((r) => r.topic === assistantMsg.reportTopic);
+            const isSaved = savedReports.some((report) => report.topic === assistantMsg.reportTopic);
             if (isSaved && !isRunning) return null;
             return {
                 id: "generating",

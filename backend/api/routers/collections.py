@@ -74,8 +74,8 @@ def list_collections(
         counts = {row[0]: row[1] for row in session.execute(count_query).all()}
         
         return [
-            _build_collection_response(c, counts.get(c.id, 0))
-            for c in collections
+            _build_collection_response(collection, counts.get(collection.id, 0))
+            for collection in collections
         ]
 
 

@@ -12,14 +12,14 @@ import { useOutlineController } from './useOutlineController';
 import { useChatPaneController } from './useChatPaneController';
 import { useMainViewState } from './useMainViewState';
 
-export function useAppProps() {
+export function useAppController() {
     const appState = useAppState();
 
     const settings = useSettingsController({ user: appState.user, setUser: appState.setUser });
 
     const savedData = useSavedData({ apiBase: appState.apiBase, user: appState.user });
     const handleSavedDataError = useCallback(
-        (msg) => savedData.setError(msg),
+        (message) => savedData.setError(message),
         [savedData.setError]
     );
     const handleTopicMoved = useCallback(
@@ -41,8 +41,8 @@ export function useAppProps() {
     useBeforeUnloadWarning(chat.isRunning);
 
     const handleForgetReport = useCallback(
-        async (id) => {
-            const reportToDelete = await saved.forgetReport(id);
+        async (reportId) => {
+            const reportToDelete = await saved.forgetReport(reportId);
             if (!reportToDelete || chat.isRunning) return;
 
             const assistantMsg = findLatestAssistantReportMessage(chat.messages);
@@ -134,13 +134,13 @@ export function useAppProps() {
     const exploreProps = {
         exploreSuggestions: explore.exploreSuggestions,
         exploreLoading: explore.exploreLoading,
-        selectedExploreSuggestions: explore.selectedExploreSuggestions,
+        selectedSuggestions: explore.selectedSuggestions,
         exploreSelectMode: explore.exploreSelectMode,
         exploreSelectToggleRef: explore.exploreSelectToggleRef,
         exploreSuggestionsRef: explore.exploreSuggestionsRef,
         handleRefreshExplore: explore.handleRefreshExplore,
         handleToggleExploreSuggestion: explore.handleToggleExploreSuggestion,
-        handleToggleExploreSelectMode: explore.handleToggleExploreSelectMode,
+        toggleExploreSelectMode: explore.toggleExploreSelectMode,
         handleOpenTopic,
     };
 
@@ -163,7 +163,7 @@ export function useAppProps() {
         messages: chat.messages,
         savedReports: saved.savedReports,
         savedTopics: saved.savedTopics,
-        topicViewTopic: topicView.topicViewTopic,
+        activeTopic: topicView.activeTopic,
         setIsHomeView: appState.setIsHomeView,
         setMode: appState.setMode,
     });
@@ -292,10 +292,10 @@ function buildSidebarProps({
 function buildTopicViewProps({ topicViewController, modelSelectionProps, mainViewState, sectionCount, setSectionCount, isRunning }) {
     return {
         isOpen: mainViewState.isTopicViewOpen,
-        topic: topicViewController.topicViewTopic,
+        topic: topicViewController.activeTopic,
         isEditing: topicViewController.isTopicEditing,
-        draft: topicViewController.topicViewDraft,
-        setDraft: topicViewController.setTopicViewDraft,
+        draft: topicViewController.draftTopic,
+        setDraft: topicViewController.setDraftTopic,
         isSaved: mainViewState.isTopicSaved,
         suggestions: topicViewController.topicSuggestions,
         suggestionsLoading: topicViewController.topicSuggestionsLoading,
@@ -314,7 +314,7 @@ function buildTopicViewProps({ topicViewController, modelSelectionProps, mainVie
             handleEditKeyDown: topicViewController.handleTopicEditKeyDown,
             handleTitleKeyDown: topicViewController.handleTopicTitleKeyDown,
             handleSave: topicViewController.handleTopicViewSave,
-            handleGenerate: topicViewController.handleTopicViewGenerate,
+            handleGenerate: topicViewController.generateTopicReport,
             handleClose: topicViewController.closeTopicView,
             handleOpenTopic: topicViewController.handleOpenTopic,
             handleToggleSuggestion: topicViewController.handleSuggestionToggle,

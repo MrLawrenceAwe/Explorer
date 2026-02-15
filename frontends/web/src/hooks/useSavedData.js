@@ -10,7 +10,7 @@ import {
     fetchSavedReports,
     deleteSavedReport,
 } from '../utils/apiClient';
-import { summarizeReport } from '../utils/text';
+import { summarizeReport } from '../utils/reportTextUtils';
 
 /** Hook for managing saved topics and reports. */
 export function useSavedData({ apiBase, user }) {
@@ -108,7 +108,7 @@ export function useSavedData({ apiBase, user }) {
     const forgetReport = useCallback(async (id) => {
         if (!id) return null;
 
-        const reportToDelete = savedReports.find((r) => r.id === id);
+        const reportToDelete = savedReports.find((report) => report.id === id);
 
         if (!user?.email) {
             setSavedReports((current) => current.filter((entry) => entry.id !== id));

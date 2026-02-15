@@ -8,7 +8,7 @@ A modern React application for the Explorer Copilot, built with Vite.
    Ensure the FastAPI service is running (usually on port 8000):
    ```bash
    # From the project root
-   uvicorn backend.api.app:app --reload --port 8000
+   uvicorn backend.api.main:app --reload --port 8000
    ```
 
 2. **Start the Frontend**:
@@ -22,4 +22,3 @@ A modern React application for the Explorer Copilot, built with Vite.
    Open `http://localhost:5173` in your browser.
 
    *Note: If your API runs on a different host/port, you can override the API base by appending `?apiBase=http://your-api-url` to the URL. This setting is cached in `localStorage`.*
-

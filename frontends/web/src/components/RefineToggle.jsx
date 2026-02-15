@@ -63,7 +63,7 @@ export function RefineToggle({
                             className="refine-field__input"
                             placeholder="e.g. politics, sports"
                             value={avoidTopics}
-                            onChange={(e) => setAvoidTopics(e.target.value)}
+                            onChange={(event) => setAvoidTopics(event.target.value)}
                             disabled={isRunning}
                         />
                     </div>
@@ -73,7 +73,7 @@ export function RefineToggle({
                             className="refine-field__input"
                             placeholder="e.g. history, science"
                             value={includeTopics}
-                            onChange={(e) => setIncludeTopics(e.target.value)}
+                            onChange={(event) => setIncludeTopics(event.target.value)}
                             disabled={isRunning}
                         />
                     </div>

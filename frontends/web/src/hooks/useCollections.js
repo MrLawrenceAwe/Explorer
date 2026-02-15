@@ -117,7 +117,7 @@ export function useCollections({
         try {
             const updated = await updateCollection(apiBase, user, collectionId, updates);
             setCollections((prev) =>
-                prev.map((c) => (c.id === collectionId ? updated : c))
+                prev.map((collection) => (collection.id === collectionId ? updated : collection))
             );
             setEditingCollectionId(null);
             return updated;
@@ -133,7 +133,7 @@ export function useCollections({
 
         try {
             await deleteCollection(apiBase, user, collectionId);
-            setCollections((prev) => prev.filter((c) => c.id !== collectionId));
+            setCollections((prev) => prev.filter((collection) => collection.id !== collectionId));
             setExpandedCollections((prev) => {
                 const next = new Set(prev);
                 next.delete(collectionId);

@@ -1,4 +1,4 @@
-import { summarizeReport } from "./text";
+import { summarizeReport } from "./reportTextUtils";
 
 function buildUserQuery(user) {
     const email = (user?.email || "").trim();

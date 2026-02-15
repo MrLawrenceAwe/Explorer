@@ -1,8 +1,8 @@
 import { AppLayout } from './components/AppLayout';
-import { useAppProps } from './hooks/useAppProps';
+import { useAppController } from './hooks/useAppController';
 
 function App() {
-  const { sidebarProps, mainProps, settingsProps } = useAppProps();
+  const { sidebarProps, mainProps, settingsProps } = useAppController();
   return <AppLayout sidebarProps={sidebarProps} mainProps={mainProps} settingsProps={settingsProps} />;
 }
 

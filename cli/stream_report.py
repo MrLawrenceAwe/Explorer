@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO
 
 CLI_DIR = Path(__file__).resolve().parent
-CLIENTS_DIR = CLI_DIR.parent
 GENERATED_REPORTS_DIR = CLI_DIR / 'generated_reports'
 
 try:

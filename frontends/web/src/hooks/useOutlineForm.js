@@ -4,9 +4,9 @@ import {
     DEFAULT_OUTLINE_JSON,
     buildOutlineGeneratePayload,
     normalizeOutlineSections,
-    parseTopicsList,
     validateOutlineJsonInput,
-} from '../utils/text';
+} from '../utils/outlineUtils';
+import { parseTopicsList } from '../utils/reportTextUtils';
 
 export function buildOutlinePayload({
     topicText,
@@ -21,8 +21,8 @@ export function buildOutlinePayload({
     let userSummary = "";
     let outlineGeneratePayload = null;
 
-    const subject_exclusions = parseTopicsList(avoidTopics);
-    const subject_inclusions = parseTopicsList(includeTopics);
+    const subjectExclusions = parseTopicsList(avoidTopics);
+    const subjectInclusions = parseTopicsList(includeTopics);
 
     if (outlineInputMode === "lines") {
         const normalizedSections = normalizeOutlineSections(outlineSections);
@@ -47,8 +47,8 @@ export function buildOutlinePayload({
             normalizedSections,
             models
         );
-        outlineGeneratePayload.subject_exclusions = subject_exclusions;
-        outlineGeneratePayload.subject_inclusions = subject_inclusions;
+        outlineGeneratePayload.subject_exclusions = subjectExclusions;
+        outlineGeneratePayload.subject_inclusions = subjectInclusions;
     } else {
         const { trimmedJsonInput, sections, error } = jsonValidation || {};
         if (!trimmedJsonInput) {
@@ -67,8 +67,8 @@ export function buildOutlinePayload({
             sections,
             models
         );
-        outlineGeneratePayload.subject_exclusions = subject_exclusions;
-        outlineGeneratePayload.subject_inclusions = subject_inclusions;
+        outlineGeneratePayload.subject_exclusions = subjectExclusions;
+        outlineGeneratePayload.subject_inclusions = subjectInclusions;
     }
 
     return {

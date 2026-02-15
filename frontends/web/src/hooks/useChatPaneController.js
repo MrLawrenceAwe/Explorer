@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { parseTopicsList } from '../utils/text';
+import { parseTopicsList } from '../utils/reportTextUtils';
 
 /** Chat composer + pane props builder. */
 export function useChatPaneController({

@@ -10,7 +10,7 @@ export function useExplore({
 }) {
     const [exploreSuggestions, setExploreSuggestions] = useState([]);
     const [exploreLoading, setExploreLoading] = useState(false);
-    const [selectedExploreSuggestions, setSelectedExploreSuggestions] = useState([]);
+    const [selectedSuggestions, setSelectedSuggestions] = useState([]);
     const [exploreNonce, setExploreNonce] = useState(0);
     const [exploreSelectMode, setExploreSelectMode] = useState(false);
     const exploreSelectToggleRef = useRef(null);
@@ -20,7 +20,7 @@ export function useExplore({
         const controller = new AbortController();
         const loadExplore = async () => {
             setExploreLoading(true);
-            setSelectedExploreSuggestions([]);
+            setSelectedSuggestions([]);
             const seeds = [
                 ...savedTopics.map((entry) => entry.prompt),
                 ...savedReports.map((entry) => entry.topic),
@@ -45,7 +45,7 @@ export function useExplore({
     const handleToggleExploreSuggestion = useCallback((title) => {
         const normalized = (title || "").trim();
         if (!normalized) return;
-        setSelectedExploreSuggestions((current) => {
+        setSelectedSuggestions((current) => {
             if (current.includes(normalized)) {
                 return current.filter((entry) => entry !== normalized);
             }
@@ -53,26 +53,26 @@ export function useExplore({
         });
     }, []);
 
-    const handleSaveSelectedExplore = useCallback(() => {
-        if (!selectedExploreSuggestions.length) return;
-        rememberTopics(selectedExploreSuggestions);
-        setSelectedExploreSuggestions([]);
+    const saveSelectedSuggestions = useCallback(() => {
+        if (!selectedSuggestions.length) return;
+        rememberTopics(selectedSuggestions);
+        setSelectedSuggestions([]);
         setExploreSelectMode(false);
-    }, [rememberTopics, selectedExploreSuggestions]);
+    }, [rememberTopics, selectedSuggestions]);
 
-    const handleToggleExploreSelectMode = useCallback(() => {
+    const toggleExploreSelectMode = useCallback(() => {
         if (!exploreSelectMode) {
-            setSelectedExploreSuggestions([]);
+            setSelectedSuggestions([]);
             setExploreSelectMode(true);
             return;
         }
-        if (selectedExploreSuggestions.length) {
-            handleSaveSelectedExplore();
+        if (selectedSuggestions.length) {
+            saveSelectedSuggestions();
             return;
         }
-        setSelectedExploreSuggestions([]);
+        setSelectedSuggestions([]);
         setExploreSelectMode(false);
-    }, [exploreSelectMode, handleSaveSelectedExplore, selectedExploreSuggestions.length]);
+    }, [exploreSelectMode, saveSelectedSuggestions, selectedSuggestions.length]);
 
     useEffect(() => {
         const handleGlobalClick = (event) => {
@@ -83,7 +83,7 @@ export function useExplore({
                 !exploreSuggestionsRef.current.contains(target) &&
                 !exploreSelectToggleRef.current?.contains(target)
             ) {
-                setSelectedExploreSuggestions([]);
+                setSelectedSuggestions([]);
                 setExploreSelectMode(false);
             }
         };
@@ -94,12 +94,12 @@ export function useExplore({
     return {
         exploreSuggestions,
         exploreLoading,
-        selectedExploreSuggestions,
+        selectedSuggestions,
         exploreSelectMode,
         exploreSelectToggleRef,
         exploreSuggestionsRef,
         handleRefreshExplore,
         handleToggleExploreSuggestion,
-        handleToggleExploreSelectMode,
+        toggleExploreSelectMode,
     };
 }

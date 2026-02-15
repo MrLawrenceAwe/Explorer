@@ -9,9 +9,9 @@ export function SectionCountSelector({ value, onChange, disabled }) {
                 min="1"
                 max="20"
                 value={value}
-                onChange={(e) => {
-                    const val = e.target.value;
-                    onChange(val === "" ? "" : parseInt(val, 10));
+                onChange={(event) => {
+                    const rawValue = event.target.value;
+                    onChange(rawValue === "" ? "" : parseInt(rawValue, 10));
                 }}
                 disabled={disabled}
                 className="section-selector__input"
