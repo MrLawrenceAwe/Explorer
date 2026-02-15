@@ -11,7 +11,12 @@ from typing import Any, Dict, Iterable, Optional
 from backend.schemas import GenerateRequest, Outline
 from backend.utils.slug_utils import slugify
 
-from .report_store import StoredReportHandle
+from .report_store import (
+    StoredReportHandle,
+    build_stored_report_handle,
+    write_outline_snapshot,
+    write_transcript,
+)
 
 _DEFAULT_STORAGE_ENV = "EXPLORER_REPORT_STORAGE_DIR"
 _DEFAULT_STORAGE_DIR = "data/reports"
@@ -37,8 +42,13 @@ class FileOnlyReportStore:
         user_email = (request.user_email or self._default_user_email or "").strip()
         user_key = slugify(user_email) if user_email else "default"
         owner_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, user_key)
-        handle = self._build_report_handle(report_id, owner_user_id, user_key)
-        self._write_outline_snapshot(handle, outline)
+        handle = build_stored_report_handle(
+            self.base_dir,
+            user_key,
+            report_id,
+            owner_user_id,
+        )
+        write_outline_snapshot(handle, outline)
         self._write_metadata(handle, request, outline, user_email)
         return handle
 
@@ -49,37 +59,12 @@ class FileOnlyReportStore:
         written_sections: Iterable[Dict[str, Any]],
         summary: Optional[str] = None,
     ) -> None:
-        text = transcript.strip() + "\n"
-        handle.transcript_path.parent.mkdir(parents=True, exist_ok=True)
-        handle.transcript_path.write_text(text, encoding="utf-8")
+        write_transcript(handle, transcript)
         self._update_metadata(handle, summary, list(written_sections))
 
     def discard_report(self, handle: StoredReportHandle) -> None:
         if handle.report_dir.exists():
             shutil.rmtree(handle.report_dir, ignore_errors=True)
-
-    def _build_report_handle(
-        self,
-        report_id: uuid.UUID,
-        owner_user_id: uuid.UUID,
-        user_key: str,
-    ) -> StoredReportHandle:
-        report_dir = self.base_dir / user_key / str(report_id)
-        report_dir.mkdir(parents=True, exist_ok=True)
-        return StoredReportHandle(
-            report_id=report_id,
-            owner_user_id=owner_user_id,
-            report_dir=report_dir,
-            outline_path=report_dir / "outline.json",
-            transcript_path=report_dir / "report.md",
-        )
-
-    def _write_outline_snapshot(self, handle: StoredReportHandle, outline: Outline) -> None:
-        handle.outline_path.parent.mkdir(parents=True, exist_ok=True)
-        handle.outline_path.write_text(
-            json.dumps(outline.model_dump(), indent=2) + "\n",
-            encoding="utf-8",
-        )
 
     def _write_metadata(
         self,

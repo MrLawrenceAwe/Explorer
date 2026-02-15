@@ -112,29 +112,31 @@ export function useChat(apiBase, rememberReport) {
                         const line = buffer.slice(0, newlineIndex).trim();
                         buffer = buffer.slice(newlineIndex + 1);
                         if (!line) continue;
+                        let event;
                         try {
-                            const event = JSON.parse(line);
-                            const statusText = formatStatus(event);
-                            if (statusText) {
-                                statusLog.push(statusText);
-                                updateMessage(assistantId, {
-                                    content: statusLog.join("\n"),
-                                    statusLog: [...statusLog],
-                                    outline: event.outline || finalOutline || null,
-                                });
-                            }
-                            if (event.outline) {
-                                finalOutline = event.outline;
-                            }
-                            if (event.status === "complete") {
-                                finalOutline = event.outline_used || finalOutline || null;
-                                finalTitle = event.report_title || finalTitle;
-                                finalText = event.report || "";
-                            } else if (event.status === "error") {
-                                throw new Error(event.detail || "Explorer reported an error.");
-                            }
+                            event = JSON.parse(line);
                         } catch (error) {
                             console.error("Failed to parse event", error, line);
+                            continue;
+                        }
+                        const statusText = formatStatus(event);
+                        if (statusText) {
+                            statusLog.push(statusText);
+                            updateMessage(assistantId, {
+                                content: statusLog.join("\n"),
+                                statusLog: [...statusLog],
+                                outline: event.outline || finalOutline || null,
+                            });
+                        }
+                        if (event.outline) {
+                            finalOutline = event.outline;
+                        }
+                        if (event.status === "complete") {
+                            finalOutline = event.outline_used || finalOutline || null;
+                            finalTitle = event.report_title || finalTitle;
+                            finalText = event.report || "";
+                        } else if (event.status === "error") {
+                            throw new Error(event.detail || "Explorer reported an error.");
                         }
                     }
                 }

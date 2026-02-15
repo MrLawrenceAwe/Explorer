@@ -13,6 +13,63 @@ function buildUserQuery(user) {
     return params.toString();
 }
 
+function withUserQuery(apiBase, path, user) {
+    return `${apiBase}${path}?${buildUserQuery(user)}`;
+}
+
+async function parseErrorDetail(response) {
+    try {
+        const payload = await response.clone().json();
+        if (typeof payload?.detail === "string") {
+            return payload.detail;
+        }
+    } catch {
+        // ignore JSON parse failures
+    }
+    return null;
+}
+
+async function ensureOk(response, fallbackMessage, { includeDetail = false } = {}) {
+    if (response.ok) return;
+    if (includeDetail) {
+        const detail = await parseErrorDetail(response);
+        if (detail) {
+            throw new Error(detail);
+        }
+    }
+    throw new Error(fallbackMessage);
+}
+
+function mapSavedTopic(topic) {
+    return {
+        id: topic.id,
+        prompt: topic.title,
+        collectionId: topic.collection_id || null,
+    };
+}
+
+function mapCollection(collection) {
+    return {
+        id: collection.id,
+        name: collection.name,
+        description: collection.description || null,
+        color: collection.color || null,
+        icon: collection.icon || null,
+        position: collection.position || 0,
+        topicCount: collection.topic_count || 0,
+    };
+}
+
+function mapSavedReport(report) {
+    return {
+        id: report.id,
+        topic: report.topic || "",
+        title: report.title || report.topic || "Explorer Report",
+        content: report.content || "",
+        preview: report.summary || summarizeReport(report.content || report.title || report.topic || ""),
+    };
+}
+
 export async function fetchTopicSuggestions(
     apiBase,
     {
@@ -37,9 +94,7 @@ export async function fetchTopicSuggestions(
             body: JSON.stringify(payload),
             signal,
         });
-        if (!response.ok) {
-            throw new Error(`Suggestion request failed: ${response.status}`);
-        }
+        await ensureOk(response, `Suggestion request failed: ${response.status}`);
         const data = await response.json();
         const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
         return suggestions
@@ -60,22 +115,14 @@ export async function fetchTopicSuggestions(
 }
 
 export async function fetchSavedTopics(apiBase, user, { signal } = {}) {
-    const query = buildUserQuery(user);
-    const response = await fetch(`${apiBase}/saved_topics?${query}`, { signal });
-    if (!response.ok) {
-        throw new Error(`Failed to load saved topics (${response.status}).`);
-    }
+    const response = await fetch(withUserQuery(apiBase, "/saved_topics", user), { signal });
+    await ensureOk(response, `Failed to load saved topics (${response.status}).`);
     const data = await response.json();
     if (!Array.isArray(data)) return [];
-    return data.map((topic) => ({
-        id: topic.id,
-        prompt: topic.title,
-        collectionId: topic.collection_id || null,
-    }));
+    return data.map(mapSavedTopic);
 }
 
 export async function createSavedTopic(apiBase, user, title, collectionId = null) {
-    const query = buildUserQuery(user);
     const normalizedTitle = (title || "").trim();
     if (!normalizedTitle) {
         throw new Error("Title is required to save a topic.");
@@ -84,52 +131,36 @@ export async function createSavedTopic(apiBase, user, title, collectionId = null
     if (collectionId) {
         body.collection_id = collectionId;
     }
-    const response = await fetch(`${apiBase}/saved_topics?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, "/saved_topics", user), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
-    if (!response.ok) {
-        throw new Error(`Failed to save topic (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to save topic (${response.status}).`);
     const topic = await response.json();
-    return {
-        id: topic.id,
-        prompt: topic.title,
-        collectionId: topic.collection_id || null,
-    };
+    return mapSavedTopic(topic);
 }
 
 export async function updateSavedTopic(apiBase, user, topicId, { collectionId } = {}) {
-    const query = buildUserQuery(user);
     const body = {};
     if (collectionId !== undefined) {
         body.collection_id = collectionId;
     }
-    const response = await fetch(`${apiBase}/saved_topics/${topicId}?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, `/saved_topics/${topicId}`, user), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
-    if (!response.ok) {
-        throw new Error(`Failed to update topic (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to update topic (${response.status}).`);
     const topic = await response.json();
-    return {
-        id: topic.id,
-        prompt: topic.title,
-        collectionId: topic.collection_id || null,
-    };
+    return mapSavedTopic(topic);
 }
 
 export async function deleteSavedTopic(apiBase, user, topicId) {
-    const query = buildUserQuery(user);
-    const response = await fetch(`${apiBase}/saved_topics/${topicId}?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, `/saved_topics/${topicId}`, user), {
         method: "DELETE",
     });
-    if (!response.ok) {
-        throw new Error(`Failed to delete topic (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to delete topic (${response.status}).`);
 }
 
 export async function fetchSavedReports(apiBase, user, { includeContent = true, signal } = {}) {
@@ -138,51 +169,28 @@ export async function fetchSavedReports(apiBase, user, { includeContent = true, 
         ? `${apiBase}/reports?${query}&include_content=1`
         : `${apiBase}/reports?${query}`;
     const response = await fetch(url, { signal });
-    if (!response.ok) {
-        throw new Error(`Failed to load reports (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to load reports (${response.status}).`);
     const data = await response.json();
     if (!Array.isArray(data)) return [];
-    return data.map((report) => ({
-        id: report.id,
-        topic: report.topic || "",
-        title: report.title || report.topic || "Explorer Report",
-        content: report.content || "",
-        preview: report.summary || summarizeReport(report.content || report.title || report.topic || ""),
-    }));
+    return data.map(mapSavedReport);
 }
 
 export async function deleteSavedReport(apiBase, user, reportId) {
-    const query = buildUserQuery(user);
-    const response = await fetch(`${apiBase}/reports/${reportId}?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, `/reports/${reportId}`, user), {
         method: "DELETE",
     });
-    if (!response.ok) {
-        throw new Error(`Failed to delete report (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to delete report (${response.status}).`);
 }
 
 export async function fetchCollections(apiBase, user, { signal } = {}) {
-    const query = buildUserQuery(user);
-    const response = await fetch(`${apiBase}/collections?${query}`, { signal });
-    if (!response.ok) {
-        throw new Error(`Failed to load collections (${response.status}).`);
-    }
+    const response = await fetch(withUserQuery(apiBase, "/collections", user), { signal });
+    await ensureOk(response, `Failed to load collections (${response.status}).`);
     const data = await response.json();
     if (!Array.isArray(data)) return [];
-    return data.map((collection) => ({
-        id: collection.id,
-        name: collection.name,
-        description: collection.description || null,
-        color: collection.color || null,
-        icon: collection.icon || null,
-        position: collection.position || 0,
-        topicCount: collection.topic_count || 0,
-    }));
+    return data.map(mapCollection);
 }
 
 export async function createCollection(apiBase, user, { name, description, color, icon } = {}) {
-    const query = buildUserQuery(user);
     const normalizedName = (name || "").trim();
     if (!normalizedName) {
         throw new Error("Collection name is required.");
@@ -192,29 +200,19 @@ export async function createCollection(apiBase, user, { name, description, color
     if (color) body.color = color.trim();
     if (icon) body.icon = icon.trim();
 
-    const response = await fetch(`${apiBase}/collections?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, "/collections", user), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to create collection (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to create collection (${response.status}).`, {
+        includeDetail: true,
+    });
     const collection = await response.json();
-    return {
-        id: collection.id,
-        name: collection.name,
-        description: collection.description || null,
-        color: collection.color || null,
-        icon: collection.icon || null,
-        position: collection.position || 0,
-        topicCount: collection.topic_count || 0,
-    };
+    return mapCollection(collection);
 }
 
 export async function updateCollection(apiBase, user, collectionId, updates = {}) {
-    const query = buildUserQuery(user);
     const body = {};
     if (updates.name !== undefined) body.name = updates.name;
     if (updates.description !== undefined) body.description = updates.description;
@@ -222,35 +220,23 @@ export async function updateCollection(apiBase, user, collectionId, updates = {}
     if (updates.icon !== undefined) body.icon = updates.icon;
     if (updates.position !== undefined) body.position = updates.position;
 
-    const response = await fetch(`${apiBase}/collections/${collectionId}?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, `/collections/${collectionId}`, user), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to update collection (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to update collection (${response.status}).`, {
+        includeDetail: true,
+    });
     const collection = await response.json();
-    return {
-        id: collection.id,
-        name: collection.name,
-        description: collection.description || null,
-        color: collection.color || null,
-        icon: collection.icon || null,
-        position: collection.position || 0,
-        topicCount: collection.topic_count || 0,
-    };
+    return mapCollection(collection);
 }
 
 export async function deleteCollection(apiBase, user, collectionId) {
-    const query = buildUserQuery(user);
-    const response = await fetch(`${apiBase}/collections/${collectionId}?${query}`, {
+    const response = await fetch(withUserQuery(apiBase, `/collections/${collectionId}`, user), {
         method: "DELETE",
     });
-    if (!response.ok) {
-        throw new Error(`Failed to delete collection (${response.status}).`);
-    }
+    await ensureOk(response, `Failed to delete collection (${response.status}).`);
 }
 
 export { buildUserQuery };

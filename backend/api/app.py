@@ -1,14 +1,7 @@
-import asyncio
-import json
-import os
-import uuid
-from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import collections, reports, suggestions, topics

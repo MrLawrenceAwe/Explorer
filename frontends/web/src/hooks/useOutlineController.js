@@ -26,8 +26,16 @@ export function useOutlineController({
                 user_email: user.email || undefined,
                 username: user.username || undefined,
             };
-            const wasSuccessful = await runReportFlow(payloadWithUser, assistantId, topicText);
-            setIsRunning(false);
+            let wasSuccessful = false;
+            try {
+                wasSuccessful = await runReportFlow(
+                    payloadWithUser,
+                    assistantId,
+                    topicText
+                );
+            } finally {
+                setIsRunning(false);
+            }
             if (wasSuccessful) {
                 outline.resetOutlineForm();
             }

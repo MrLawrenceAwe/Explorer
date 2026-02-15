@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { useAppState } from './useAppState';
 import { useSettingsController } from './useSettingsController';
-import { useSavedCollectionsController } from './useSavedCollectionsController';
-import { useChatController } from './useChatController';
+import { useSavedData } from './useSavedData';
+import { useCollections } from './useCollections';
+import { useChat } from './useChat';
+import { useBeforeUnloadWarning } from './useBeforeUnloadWarning';
 import { useGeneration } from './useGeneration';
-import { useTopicViewController } from './useTopicViewController';
-import { useExploreController } from './useExploreController';
+import { useTopicView } from './useTopicView';
+import { useExplore } from './useExplore';
 import { useOutlineController } from './useOutlineController';
 import { useChatPaneController } from './useChatPaneController';
 import { useMainViewState } from './useMainViewState';
@@ -15,14 +17,42 @@ export function useAppProps() {
 
     const settings = useSettingsController({ user: appState.user, setUser: appState.setUser });
 
-    const saved = useSavedCollectionsController({ apiBase: appState.apiBase, user: appState.user });
-
-    const chat = useChatController({
+    const savedData = useSavedData({ apiBase: appState.apiBase, user: appState.user });
+    const handleSavedDataError = useCallback(
+        (msg) => savedData.setError(msg),
+        [savedData.setError]
+    );
+    const handleTopicMoved = useCallback(
+        (updatedTopic) => savedData.updateTopicCollection(updatedTopic.id, updatedTopic.collectionId),
+        [savedData.updateTopicCollection]
+    );
+    const collections = useCollections({
         apiBase: appState.apiBase,
-        rememberReport: saved.rememberReport,
-        forgetReport: saved.forgetReport,
-        setIsHomeView: appState.setIsHomeView,
+        user: appState.user,
+        onTopicMoved: handleTopicMoved,
+        onError: handleSavedDataError,
     });
+    const saved = {
+        ...savedData,
+        collections,
+    };
+
+    const chat = useChat(appState.apiBase, saved.rememberReport);
+    useBeforeUnloadWarning(chat.isRunning);
+
+    const handleForgetReport = useCallback(
+        async (id) => {
+            const reportToDelete = await saved.forgetReport(id);
+            if (!reportToDelete || chat.isRunning) return;
+
+            const assistantMsg = findLatestAssistantReportMessage(chat.messages);
+            if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
+                chat.setMessages([]);
+                appState.setIsHomeView(true);
+            }
+        },
+        [appState.setIsHomeView, chat.isRunning, chat.messages, chat.setMessages, saved.forgetReport]
+    );
 
     const { runTopicPrompt } = useGeneration({
         user: appState.user,
@@ -36,21 +66,36 @@ export function useAppProps() {
         isRunning: chat.isRunning,
     });
 
-    const topicViewController = useTopicViewController({
+    const topicView = useTopicView({
         apiBase: appState.apiBase,
         suggestionModel: settings.suggestionModel,
         rememberTopics: saved.rememberTopics,
         isRunning: chat.isRunning,
         runTopicPrompt,
-        normalizeTopicForOpen: appState.normalizeTopicForOpen,
     });
+
+    const handleOpenTopic = useCallback(
+        (topic, options = {}) => {
+            const safeTopic = appState.normalizeTopicForOpen(topic, options);
+            if (!safeTopic) return;
+            topicView.openTopicView(safeTopic, {
+                pauseSuggestions: Boolean(options.pauseSuggestions),
+            });
+        },
+        [appState.normalizeTopicForOpen, topicView.openTopicView]
+    );
+
+    const topicViewController = {
+        ...topicView,
+        handleOpenTopic,
+    };
 
     const handleReportOpen = useCallback(
         (reportPayload) => {
-            topicViewController.closeTopicView();
+            topicView.closeTopicView();
             appState.handleReportOpen(reportPayload);
         },
-        [appState, topicViewController]
+        [appState.handleReportOpen, topicView.closeTopicView]
     );
 
     const handleTopicViewBarSubmit = useCallback(
@@ -58,35 +103,46 @@ export function useAppProps() {
             event.preventDefault();
             const normalized = appState.topicViewBarValue.trim();
             if (!normalized) return;
-            topicViewController.handleOpenTopic(normalized);
+            handleOpenTopic(normalized);
             appState.setTopicViewBarValue('');
         },
-        [appState, topicViewController]
+        [appState.setTopicViewBarValue, appState.topicViewBarValue, handleOpenTopic]
     );
 
     const handleTopicRecall = useCallback((topic) => {
-        topicViewController.handleOpenTopic(topic);
-    }, [topicViewController]);
+        handleOpenTopic(topic);
+    }, [handleOpenTopic]);
 
     const handleReset = useCallback(() => {
-        topicViewController.closeTopicView();
+        topicView.closeTopicView();
         appState.resetToHome(chat.isRunning ? null : () => chat.setMessages([]));
-    }, [appState, chat, topicViewController]);
+    }, [appState.resetToHome, chat.isRunning, chat.setMessages, topicView.closeTopicView]);
 
     const handleGeneratingReportSelect = useCallback(() => {
         appState.setActiveReport(null);
-        topicViewController.closeTopicView();
+        topicView.closeTopicView();
         appState.setIsHomeView(false);
-    }, [appState, topicViewController]);
+    }, [appState.setActiveReport, appState.setIsHomeView, topicView.closeTopicView]);
 
-    const explore = useExploreController({
+    const explore = useExplore({
         apiBase: appState.apiBase,
         savedTopics: saved.savedTopics,
         savedReports: saved.savedReports,
         suggestionModel: settings.suggestionModel,
         rememberTopics: saved.rememberTopics,
-        handleOpenTopic: topicViewController.handleOpenTopic,
     });
+    const exploreProps = {
+        exploreSuggestions: explore.exploreSuggestions,
+        exploreLoading: explore.exploreLoading,
+        selectedExploreSuggestions: explore.selectedExploreSuggestions,
+        exploreSelectMode: explore.exploreSelectMode,
+        exploreSelectToggleRef: explore.exploreSelectToggleRef,
+        exploreSuggestionsRef: explore.exploreSuggestionsRef,
+        handleRefreshExplore: explore.handleRefreshExplore,
+        handleToggleExploreSuggestion: explore.handleToggleExploreSuggestion,
+        handleToggleExploreSelectMode: explore.handleToggleExploreSelectMode,
+        handleOpenTopic,
+    };
 
     const outline = useOutlineController({
         user: appState.user,
@@ -107,7 +163,7 @@ export function useAppProps() {
         messages: chat.messages,
         savedReports: saved.savedReports,
         savedTopics: saved.savedTopics,
-        topicViewTopic: topicViewController.topicViewTopic,
+        topicViewTopic: topicView.topicViewTopic,
         setIsHomeView: appState.setIsHomeView,
         setMode: appState.setMode,
     });
@@ -142,7 +198,7 @@ export function useAppProps() {
         setTopicViewBarValue: appState.setTopicViewBarValue,
         handleTopicViewBarSubmit,
         handleTopicRecall,
-        handleForgetReport: chat.handleForgetReport,
+        handleForgetReport,
         handleReportOpen,
         handleReset,
         handleGeneratingReportSelect,
@@ -164,13 +220,13 @@ export function useAppProps() {
         isOpen: appState.isReportViewOpen,
         report: appState.activeReport,
         onClose: appState.handleReportClose,
-        onOpenTopic: topicViewController.handleOpenTopic,
+        onOpenTopic: handleOpenTopic,
     };
 
     const mainProps = {
         chatPaneClassName: mainViewState.chatPaneClassName,
         shouldShowExplore: mainViewState.shouldShowExplore,
-        exploreProps: explore.exploreProps,
+        exploreProps,
         topicViewProps,
         reportViewProps,
         chatPaneProps,
@@ -274,4 +330,8 @@ function buildTopicViewProps({ topicViewController, modelSelectionProps, mainVie
         includeTopics: topicViewController.includeTopics,
         setIncludeTopics: topicViewController.setIncludeTopics,
     };
+}
+
+function findLatestAssistantReportMessage(messages) {
+    return [...messages].reverse().find((message) => message.role === 'assistant' && message.reportTopic);
 }

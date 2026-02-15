@@ -21,23 +21,35 @@ export function useCollections({
     const [isCreating, setIsCreating] = useState(false);
     const [newCollectionName, setNewCollectionName] = useState('');
     const abortControllerRef = useRef(null);
+    const requestIdRef = useRef(0);
 
     const loadCollections = useCallback(async () => {
+        requestIdRef.current += 1;
+        const requestId = requestIdRef.current;
         if (!user?.email) {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
             setCollections([]);
+            setIsLoading(false);
             return;
         }
 
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
-        abortControllerRef.current = new AbortController();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
 
         setIsLoading(true);
         try {
             const data = await fetchCollections(apiBase, user, {
-                signal: abortControllerRef.current.signal,
+                signal: controller.signal,
             });
+            if (requestId !== requestIdRef.current || controller.signal.aborted) {
+                return;
+            }
             setCollections(data);
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -45,7 +57,9 @@ export function useCollections({
                 onError?.(error.message || 'Failed to load collections.');
             }
         } finally {
-            setIsLoading(false);
+            if (requestId === requestIdRef.current) {
+                setIsLoading(false);
+            }
         }
     }, [apiBase, user, onError]);
 

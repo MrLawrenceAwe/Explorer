@@ -42,6 +42,37 @@ class StoredReportHandle:
     transcript_path: Path
 
 
+def build_stored_report_handle(
+    base_dir: Path,
+    owner_path_segment: str,
+    report_id: uuid.UUID,
+    owner_user_id: uuid.UUID,
+) -> StoredReportHandle:
+    report_dir = base_dir / owner_path_segment / str(report_id)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    return StoredReportHandle(
+        report_id=report_id,
+        owner_user_id=owner_user_id,
+        report_dir=report_dir,
+        outline_path=report_dir / "outline.json",
+        transcript_path=report_dir / "report.md",
+    )
+
+
+def write_outline_snapshot(handle: StoredReportHandle, outline: Outline) -> None:
+    handle.outline_path.parent.mkdir(parents=True, exist_ok=True)
+    handle.outline_path.write_text(
+        json.dumps(outline.model_dump(), indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def write_transcript(handle: StoredReportHandle, transcript: str) -> None:
+    text = transcript.strip() + "\n"
+    handle.transcript_path.parent.mkdir(parents=True, exist_ok=True)
+    handle.transcript_path.write_text(text, encoding="utf-8")
+
+
 class GeneratedReportStore:
     """Persist generated report metadata plus artifacts to disk."""
 
@@ -124,9 +155,7 @@ class GeneratedReportStore:
     ) -> None:
         """Persist the final transcript and update DB metadata."""
 
-        text = transcript.strip() + "\n"
-        handle.transcript_path.parent.mkdir(parents=True, exist_ok=True)
-        handle.transcript_path.write_text(text, encoding="utf-8")
+        write_transcript(handle, transcript)
         sections_payload = list(written_sections)
         with session_scope(self._session_factory) as session:
             report = session.get(Report, handle.report_id)
@@ -218,33 +247,26 @@ class GeneratedReportStore:
         )
         return any(marker in message for marker in slug_markers)
 
-    def _build_report_handle(
-        self,
-        report_id: uuid.UUID,
-        owner_user_id: uuid.UUID,
-    ) -> StoredReportHandle:
-        report_dir = self.base_dir / str(owner_user_id) / str(report_id)
-        report_dir.mkdir(parents=True, exist_ok=True)
-        return StoredReportHandle(
-            report_id=report_id,
-            owner_user_id=owner_user_id,
-            report_dir=report_dir,
-            outline_path=report_dir / "outline.json",
-            transcript_path=report_dir / "report.md",
-        )
-
-    def _write_outline_snapshot(self, handle: StoredReportHandle, outline: Outline) -> None:
-        handle.outline_path.parent.mkdir(parents=True, exist_ok=True)
-        handle.outline_path.write_text(
-            json.dumps(outline.model_dump(), indent=2) + "\n",
-            encoding="utf-8",
-        )
-
     def _relative_uri(self, path: Path) -> str:
         try:
             return str(path.relative_to(self.base_dir))
         except ValueError:
             return str(path)
+
+    def _build_report_handle(
+        self,
+        report_id: uuid.UUID,
+        owner_user_id: uuid.UUID,
+    ) -> StoredReportHandle:
+        return build_stored_report_handle(
+            self.base_dir,
+            str(owner_user_id),
+            report_id,
+            owner_user_id,
+        )
+
+    def _write_outline_snapshot(self, handle: StoredReportHandle, outline: Outline) -> None:
+        write_outline_snapshot(handle, outline)
 
 
 def _create_default_session_factory() -> sessionmaker[Session]:
