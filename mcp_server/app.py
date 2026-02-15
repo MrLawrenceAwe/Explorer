@@ -20,8 +20,12 @@ from backend.api.dependencies import (
 )
 from backend.db import Report, session_scope
 from backend.schemas import GenerateRequest, OutlineRequest, ReportResponse, SuggestionsRequest
-from backend.utils.api_helpers import load_report_content, normalize_user, resolve_base_dir
-from backend.utils.user_utils import get_or_create_user
+from backend.utils.api_helpers import (
+    get_user_by_email,
+    load_report_content,
+    normalize_user,
+    resolve_base_dir,
+)
 
 
 class ReportListRequest(BaseModel):
@@ -100,7 +104,9 @@ def reports_list(request: ReportListRequest) -> List[Dict[str, Any]]:
     user_email, username = normalize_user(request.user_email, request.username)
     base_dir = resolve_base_dir(report_store)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            return []
         reports = session.scalars(
             select(Report)
             .where(
@@ -122,7 +128,9 @@ def reports_get(request: ReportGetRequest) -> Dict[str, Any]:
     user_email, username = normalize_user(request.user_email, request.username)
     base_dir = resolve_base_dir(report_store)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            return {"error": "Report not found"}
         report = session.get(Report, request.report_id)
         if not report or report.owner_user_id != user.id or report.is_deleted:
             return {"error": "Report not found"}

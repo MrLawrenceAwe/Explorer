@@ -247,11 +247,13 @@ class _ReportStreamRunner:
             full_report_context=report_context,
         )
 
-        section_text = await self._write_section_text(
+        section_text, writer_events = await self._write_section_text(
             section_title,
             writer_system,
             writer_prompt,
         )
+        for writer_event in writer_events:
+            yield await self._emit_status_once(writer_event)
         if section_text is None:
             return
 
@@ -289,14 +291,16 @@ class _ReportStreamRunner:
         section_title: str,
         writer_system: str,
         writer_prompt: str,
-    ) -> Optional[str]:
+    ) -> tuple[Optional[str], List[Dict[str, Any]]]:
+        status_events: List[Dict[str, Any]] = []
         while True:
             try:
-                return await self.service.text_client.call_text_async(
+                text = await self.service.text_client.call_text_async(
                     self.writer_state.active,
                     writer_system,
                     writer_prompt,
                 )
+                return text, status_events
             except BaseException as exception:
                 if isinstance(exception, asyncio.CancelledError) or not isinstance(
                     exception, Exception
@@ -306,12 +310,11 @@ class _ReportStreamRunner:
                     section_title, str(exception)
                 )
                 if fallback_status is None:
-                    error_payload = self._stage_error_payload(
-                        section_title, "write", exception
+                    status_events.append(
+                        self._stage_error_payload(section_title, "write", exception)
                     )
-                    await self._emit_status_once(error_payload)
-                    return None
-                await self._emit_status_once(fallback_status)
+                    return None, status_events
+                status_events.append(fallback_status)
 
     async def _edit_section_body(
         self,

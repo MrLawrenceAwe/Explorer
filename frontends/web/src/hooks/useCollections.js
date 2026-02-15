@@ -140,16 +140,6 @@ export function useCollections({
             const updated = await updateSavedTopic(apiBase, user, topicId, { collectionId });
             onTopicMoved?.(updated);
 
-            // Update collection topic counts
-            setCollections((prev) =>
-                prev.map((c) => {
-                    if (c.id === collectionId) {
-                        return { ...c, topicCount: c.topicCount + 1 };
-                    }
-                    return c;
-                })
-            );
-
             return true;
         } catch (error) {
             console.error('Failed to move topic:', error);

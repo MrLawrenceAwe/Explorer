@@ -87,7 +87,7 @@ export function CollectionsList({
         }
     };
 
-    const renderTopicItem = (topic) => (
+    const renderTopicItem = (topic, currentCollectionId = null) => (
         <li key={topic.id} className="collections__topic-item">
             <button
                 type="button"
@@ -108,6 +108,25 @@ export function CollectionsList({
             >
                 ×
             </button>
+            <select
+                className="collections__topic-move"
+                aria-label={`Move "${topic.prompt}" to collection`}
+                value={topic.collectionId || ""}
+                onChange={(event) => {
+                    event.stopPropagation();
+                    const nextCollectionId = event.target.value || null;
+                    if (nextCollectionId === (currentCollectionId || null)) return;
+                    onMoveTopicToCollection?.(topic.id, nextCollectionId);
+                }}
+                onClick={(event) => event.stopPropagation()}
+            >
+                <option value="">Uncategorized</option>
+                {collections.map((collection) => (
+                    <option key={collection.id} value={collection.id}>
+                        {collection.name}
+                    </option>
+                ))}
+            </select>
         </li>
     );
 
@@ -240,7 +259,7 @@ export function CollectionsList({
                             </div>
                             {isExpanded && topics.length > 0 && (
                                 <ul className="collections__topics">
-                                    {topics.map(renderTopicItem)}
+                                    {topics.map((topic) => renderTopicItem(topic, collection.id))}
                                 </ul>
                             )}
                             {isExpanded && topics.length === 0 && (
@@ -256,7 +275,7 @@ export function CollectionsList({
                 <div className="collections__uncategorized">
                     <h4 className="collections__uncategorized-title">Uncategorized</h4>
                     <ul className="collections__topics">
-                        {uncategorizedTopics.map(renderTopicItem)}
+                        {uncategorizedTopics.map((topic) => renderTopicItem(topic, null))}
                     </ul>
                 </div>
             )}

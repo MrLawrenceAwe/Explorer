@@ -12,11 +12,21 @@ from backend.schemas import SavedTopicResponse, CreateSavedTopicRequest, UpdateS
 from backend.utils.api_helpers import (
     normalize_user,
     get_or_create_user,
+    get_user_by_email,
     resolve_topic_title,
     slugify,
 )
 
 router = APIRouter()
+
+
+def _validate_collection(
+    session: Session, user_id: uuid.UUID, collection_id: uuid.UUID
+) -> uuid.UUID:
+    collection = session.get(TopicCollection, collection_id)
+    if not collection or collection.owner_user_id != user_id or collection.is_deleted:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
+    return collection_id
 
 @router.get("/saved_topics", response_model=List[SavedTopicResponse])
 def list_saved_topics(
@@ -29,7 +39,9 @@ def list_saved_topics(
 ):
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            return []
         topics = session.scalars(
             select(SavedTopic)
             .where(
@@ -75,7 +87,9 @@ def create_saved_topic(
                 existing.is_deleted = False
             # Update collection if provided
             if payload.collection_id is not None:
-                existing.collection_id = payload.collection_id
+                existing.collection_id = _validate_collection(
+                    session, user.id, payload.collection_id
+                )
             return SavedTopicResponse(
                 id=existing.id,
                 title=existing.title,
@@ -108,9 +122,7 @@ def create_saved_topic(
         # Validate collection_id if provided
         collection_id = payload.collection_id
         if collection_id is not None:
-            collection = session.get(TopicCollection, collection_id)
-            if not collection or collection.owner_user_id != user.id or collection.is_deleted:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
+            collection_id = _validate_collection(session, user.id, collection_id)
 
         topic = SavedTopic(
             slug=slug,
@@ -141,7 +153,9 @@ def delete_saved_topic(
 ):
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved topic not found.")
         topic = session.get(SavedTopic, topic_id)
         if not topic or topic.owner_user_id != user.id or topic.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved topic not found.")
@@ -171,7 +185,9 @@ def update_saved_topic(
     """Update a saved topic (e.g., move to a different collection)."""
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved topic not found.")
         topic = session.get(SavedTopic, topic_id)
         if not topic or topic.owner_user_id != user.id or topic.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved topic not found.")
@@ -179,11 +195,9 @@ def update_saved_topic(
         # Update collection_id
         if "collection_id" in payload.model_fields_set:
             if payload.collection_id is not None:
-                # Validate collection exists and belongs to user
-                collection = session.get(TopicCollection, payload.collection_id)
-                if not collection or collection.owner_user_id != user.id or collection.is_deleted:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
-                topic.collection_id = payload.collection_id
+                topic.collection_id = _validate_collection(
+                    session, user.id, payload.collection_id
+                )
             else:
                 # Explicitly set to None (move to uncategorized)
                 topic.collection_id = None

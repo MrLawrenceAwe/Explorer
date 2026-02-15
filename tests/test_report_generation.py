@@ -191,6 +191,99 @@ def test_report_generator_editing_failure_emits_error_event():
     assert len(stub_text_client.calls) == 2
 
 
+def test_report_generator_writer_failure_emits_error_event():
+    outline = Outline(
+        report_title="Insights",
+        sections=[Section(title="Background", subsections=["Overview"])],
+    )
+    stub_text_client = StubTextClient([RuntimeError("writer boom")])
+    service = ReportGeneratorService(
+        outline_service=DummyOutlineService(),
+        text_client=stub_text_client,
+        report_store=NoopReportStore(),
+    )
+    request = GenerateRequest.model_validate(
+        {
+            "outline": outline.model_dump(),
+            "models": {
+                "outline": {"model": "outline-model"},
+                "writer": {"model": "writer-model"},
+                "editor": {"model": "editor-model"},
+            },
+        }
+    )
+
+    events = []
+
+    async def collect_events():
+        async for event in service.stream_report(request):
+            events.append(event)
+
+    asyncio.run(collect_events())
+
+    statuses = [event["status"] for event in events]
+    assert statuses == [
+        "started",
+        "using_provided_outline",
+        "persistence_ready",
+        "begin_sections",
+        "writing_section",
+        "error",
+    ]
+
+    final_event = events[-1]
+    assert "writer boom" in final_event["detail"]
+    assert final_event["section"] == "1: Background"
+    assert len(stub_text_client.calls) == 1
+
+
+def test_report_generator_writer_fallback_emits_status():
+    outline = Outline(
+        report_title="Insights",
+        sections=[Section(title="Background", subsections=["Overview"])],
+    )
+    stub_text_client = StubTextClient(
+        [
+            RuntimeError("primary writer boom"),
+            "### Overview\nWriter body",
+            "### Overview\nEdited body",
+        ]
+    )
+    service = ReportGeneratorService(
+        outline_service=DummyOutlineService(),
+        text_client=stub_text_client,
+        report_store=NoopReportStore(),
+    )
+    request = GenerateRequest.model_validate(
+        {
+            "outline": outline.model_dump(),
+            "writer_fallback": "writer-fallback",
+            "models": {
+                "outline": {"model": "outline-model"},
+                "writer": {"model": "writer-model"},
+                "editor": {"model": "editor-model"},
+            },
+        }
+    )
+
+    events = []
+
+    async def collect_events():
+        async for event in service.stream_report(request):
+            events.append(event)
+
+    asyncio.run(collect_events())
+
+    statuses = [event["status"] for event in events]
+    assert "writer_model_fallback" in statuses
+    assert statuses[-1] == "complete"
+    fallback_event = next(
+        event for event in events if event["status"] == "writer_model_fallback"
+    )
+    assert fallback_event["previous_model"] == "writer-model"
+    assert fallback_event["fallback_model"] == "writer-fallback"
+
+
 def test_report_generator_runs_editing_even_when_models_match():
     outline = Outline(
         report_title="Insights",

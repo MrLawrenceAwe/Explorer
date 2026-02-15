@@ -312,6 +312,16 @@
     color: #ef4444;
 }
 
+.collections__topic-move {
+    max-width: 8rem;
+    font-size: 0.6875rem;
+    color: var(--color-text-tertiary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.25rem;
+}
+
 /* Empty/Uncategorized states */
 .collections__empty {
     font-size: 0.75rem;

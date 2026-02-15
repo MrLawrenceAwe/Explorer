@@ -15,7 +15,7 @@ from backend.schemas import (
     CreateTopicCollectionRequest,
     UpdateTopicCollectionRequest,
 )
-from backend.utils.api_helpers import normalize_user, get_or_create_user
+from backend.utils.api_helpers import normalize_user, get_or_create_user, get_user_by_email
 
 router = APIRouter()
 
@@ -47,7 +47,9 @@ def list_collections(
     """List all topic collections for the current user."""
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            return []
         
         # Query collections with topic counts
         collections = session.scalars(
@@ -152,7 +154,9 @@ def get_collection(
     """Get a specific topic collection."""
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found.")
         collection = session.get(TopicCollection, collection_id)
         if not collection or collection.owner_user_id != user.id or collection.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found.")
@@ -181,7 +185,9 @@ def update_collection(
     """Update a topic collection."""
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found.")
         collection = session.get(TopicCollection, collection_id)
         if not collection or collection.owner_user_id != user.id or collection.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found.")
@@ -240,7 +246,9 @@ def delete_collection(
     """Delete a topic collection. Topics in this collection will be moved to 'uncategorized'."""
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found.")
         collection = session.get(TopicCollection, collection_id)
         if not collection or collection.owner_user_id != user.id or collection.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found.")

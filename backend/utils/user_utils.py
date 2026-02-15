@@ -40,8 +40,14 @@ def get_or_create_user(
     return user
 
 
+def get_user_by_email(session: Session, user_email: str) -> Optional[User]:
+    """Fetch a user by email without creating missing rows."""
+
+    return session.scalar(select(User).where(User.email == user_email))
+
+
 def _is_placeholder(value: Optional[str], placeholders: Iterable[str]) -> bool:
     return (value or "") in set(placeholders)
 
 
-__all__ = ["get_or_create_user"]
+__all__ = ["get_or_create_user", "get_user_by_email"]

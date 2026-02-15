@@ -41,10 +41,32 @@ class SuggestionService:
             request.model, self._system_prompt(), prompt
         )
         seen: set[str] = set()
-        titles = self._parse_titles(raw_response, max_suggestions, seen)
-        return SuggestionsResponse(
-            suggestions=[SuggestionItem(title=title, source="guided") for title in titles]
+        suggestions: List[SuggestionItem] = []
+        guided_titles = self._parse_titles(raw_response, max_suggestions, seen)
+        suggestions.extend(
+            SuggestionItem(title=title, source="guided") for title in guided_titles
         )
+
+        remaining = max_suggestions - len(suggestions)
+        if request.enable_free_roam and remaining > 0:
+            try:
+                free_roam_response = await self.text_client.call_text_async(
+                    request.model,
+                    self._system_prompt(),
+                    self._build_free_roam_prompt(seeds),
+                )
+                free_roam_titles = self._parse_titles(
+                    free_roam_response, remaining, seen
+                )
+                suggestions.extend(
+                    SuggestionItem(title=title, source="free_roam")
+                    for title in free_roam_titles
+                )
+            except Exception:
+                # Free-roam is additive; keep guided suggestions when this pass fails.
+                pass
+
+        return SuggestionsResponse(suggestions=suggestions)
 
     def _collect_seeds(self, request: SuggestionsRequest) -> List[str]:
         seeds: List[str] = []
@@ -86,6 +108,21 @@ class SuggestionService:
         seeds_block = "\n".join(f"- {entry}" for entry in seeds[:20])
         return (
             "You suggest concise, meaningful topics related to the provided seeds. "
+            "Return strictly valid JSON. Use Title Case."
+            f"\n\nSeeds:\n{seeds_block}\n"
+            "\nOutput JSON schema:\n"
+            "{\n"
+            '  "suggestions": [{"title": "Concise topic string"}]\n'
+            "}\n"
+            "Return suggestions as objects only (never bare strings). "
+            "Keep titles under 80 characters and avoid duplicates"
+        )
+
+    def _build_free_roam_prompt(self, seeds: Sequence[str]) -> str:
+        seeds_block = "\n".join(f"- {entry}" for entry in seeds[:20])
+        return (
+            "Suggest adjacent or overlooked topic angles inspired by the seeds. "
+            "Broaden the scope beyond direct paraphrases while staying relevant. "
             "Return strictly valid JSON. Use Title Case."
             f"\n\nSeeds:\n{seeds_block}\n"
             "\nOutput JSON schema:\n"

@@ -20,7 +20,7 @@ from backend.services.report_service import ReportGeneratorService
 from backend.storage import FileOnlyReportStore, GeneratedReportStore
 from backend.utils.api_helpers import (
     normalize_user,
-    get_or_create_user,
+    get_user_by_email,
     resolve_base_dir,
     load_report_content,
 )
@@ -65,7 +65,9 @@ def list_reports(
     user_email, username = normalize_user(user_email, username)
     base_dir = resolve_base_dir(report_store)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            return []
         reports = session.scalars(
             select(Report)
             .where(
@@ -107,7 +109,9 @@ def get_report(
     user_email, username = normalize_user(user_email, username)
     base_dir = resolve_base_dir(report_store)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")
         report = session.get(Report, report_id)
         if not report or report.owner_user_id != user.id or report.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")
@@ -139,7 +143,9 @@ def delete_report(
 ):
     user_email, username = normalize_user(user_email, username)
     with session_scope(session_factory) as session:
-        user = get_or_create_user(session, user_email, username)
+        user = get_user_by_email(session, user_email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")
         report = session.get(Report, report_id)
         if not report or report.owner_user_id != user.id or report.is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")

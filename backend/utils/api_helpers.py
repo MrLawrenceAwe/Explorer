@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from backend.db import Report
 from backend.storage import GeneratedReportStore
 from backend.utils.slug_utils import slugify
-from backend.utils.user_utils import get_or_create_user
+from backend.utils.user_utils import get_or_create_user, get_user_by_email
 
 _DEFAULT_USER_EMAIL_ENV = "EXPLORER_DEFAULT_USER_EMAIL"
 
