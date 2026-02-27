@@ -1,6 +1,7 @@
 export const API_BASE_STORAGE_KEY = "explorer-api-base";
 export const SAVED_TOPICS_KEY = "explorer-saved-topics";
 export const SAVED_REPORTS_KEY = "explorer-saved-reports";
+export const COURSES_STORAGE_KEY = "explorer-courses";
 export const COLLECTIONS_STORAGE_KEY = "explorer-collections";
 export const DEFAULT_API_BASE = `${window.location.origin}/api`;
 export const MAX_SAVED_TOPICS = 50;

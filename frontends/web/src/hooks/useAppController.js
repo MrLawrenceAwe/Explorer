@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useAppState } from './useAppState';
 import { useSettingsController } from './useSettingsController';
 import { useSavedData } from './useSavedData';
@@ -11,9 +11,12 @@ import { useExplore } from './useExplore';
 import { useOutlineController } from './useOutlineController';
 import { useChatPaneController } from './useChatPaneController';
 import { useMainViewState } from './useMainViewState';
+import { useCourses } from './useCourses';
 
 export function useAppController() {
     const appState = useAppState();
+    const [activePage, setActivePage] = useState('explore');
+    const courses = useCourses();
 
     const settings = useSettingsController({ user: appState.user, setUser: appState.setUser });
 
@@ -49,6 +52,7 @@ export function useAppController() {
             if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
                 chat.setMessages([]);
                 appState.setIsHomeView(true);
+                setActivePage('explore');
             }
         },
         [appState.setIsHomeView, chat.isRunning, chat.messages, chat.setMessages, saved.forgetReport]
@@ -78,6 +82,7 @@ export function useAppController() {
         (topic, options = {}) => {
             const safeTopic = appState.normalizeTopicForOpen(topic, options);
             if (!safeTopic) return;
+            setActivePage('explore');
             topicView.openTopicView(safeTopic, {
                 pauseSuggestions: Boolean(options.pauseSuggestions),
             });
@@ -93,6 +98,7 @@ export function useAppController() {
     const handleReportOpen = useCallback(
         (reportPayload) => {
             topicView.closeTopicView();
+            setActivePage('explore');
             appState.handleReportOpen(reportPayload);
         },
         [appState.handleReportOpen, topicView.closeTopicView]
@@ -114,15 +120,28 @@ export function useAppController() {
     }, [handleOpenTopic]);
 
     const handleReset = useCallback(() => {
+        setActivePage('explore');
         topicView.closeTopicView();
         appState.resetToHome(chat.isRunning ? null : () => chat.setMessages([]));
     }, [appState.resetToHome, chat.isRunning, chat.setMessages, topicView.closeTopicView]);
 
     const handleGeneratingReportSelect = useCallback(() => {
+        setActivePage('explore');
         appState.setActiveReport(null);
         topicView.closeTopicView();
         appState.setIsHomeView(false);
     }, [appState.setActiveReport, appState.setIsHomeView, topicView.closeTopicView]);
+
+    const handleOpenCourses = useCallback(() => {
+        topicView.closeTopicView();
+        appState.setActiveReport(null);
+        appState.setIsHomeView(false);
+        setActivePage('courses');
+    }, [appState.setActiveReport, appState.setIsHomeView, topicView.closeTopicView]);
+
+    const handleOpenExplorer = useCallback(() => {
+        setActivePage('explore');
+    }, []);
 
     const explore = useExplore({
         apiBase: appState.apiBase,
@@ -202,6 +221,9 @@ export function useAppController() {
         handleReportOpen,
         handleReset,
         handleGeneratingReportSelect,
+        handleOpenCourses,
+        handleOpenExplorer,
+        activePage,
         useCollectionsFeature: Boolean(appState.user?.email),
         handleOpenSettings: settings.handleOpenSettings,
         generatingReport: mainViewState.generatingReport,
@@ -225,6 +247,17 @@ export function useAppController() {
 
     const mainProps = {
         chatPaneClassName: mainViewState.chatPaneClassName,
+        isCoursesPage: activePage === 'courses',
+        coursesProps: {
+            courses: courses.courses,
+            onAddCourse: courses.addCourse,
+            onDeleteCourse: courses.deleteCourse,
+            onToggleCourse: courses.toggleCourse,
+            onToggleModule: courses.toggleModule,
+            onToggleTopic: courses.toggleTopic,
+            onAddTopicToModule: courses.addTopicToModule,
+            onAddModuleToCourse: courses.addModuleToCourse,
+        },
         shouldShowExplore: mainViewState.shouldShowExplore,
         exploreProps,
         topicViewProps,
@@ -247,6 +280,9 @@ function buildSidebarProps({
     handleReportOpen,
     handleReset,
     handleGeneratingReportSelect,
+    handleOpenCourses,
+    handleOpenExplorer,
+    activePage,
     useCollectionsFeature,
     handleOpenSettings,
     generatingReport,
@@ -266,6 +302,9 @@ function buildSidebarProps({
         setTopicViewBarValue,
         handleTopicViewBarSubmit,
         onOpenSettings: handleOpenSettings,
+        onOpenCourses: handleOpenCourses,
+        onOpenExplorer: handleOpenExplorer,
+        activePage,
         onReportSelect: handleReportOpen,
         onResetExplore: handleReset,
         isSyncing,

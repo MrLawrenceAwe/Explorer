@@ -14,8 +14,11 @@ export function Sidebar({
     setTopicViewBarValue,
     handleTopicViewBarSubmit,
     onOpenSettings,
+    onOpenCourses,
+    onOpenExplorer,
     onReportSelect,
     onResetExplore,
+    activePage = 'explore',
     isSyncing,
     savedError,
     generatingReport,
@@ -54,6 +57,22 @@ export function Sidebar({
             <button type="button" className="sidebar__settings-button" onClick={onOpenSettings}>
                 Settings
             </button>
+            <div className="sidebar__nav">
+                <button
+                    type="button"
+                    className={`sidebar__nav-button${activePage === 'explore' ? ' sidebar__nav-button--active' : ''}`}
+                    onClick={onOpenExplorer}
+                >
+                    Explorer
+                </button>
+                <button
+                    type="button"
+                    className={`sidebar__nav-button${activePage === 'courses' ? ' sidebar__nav-button--active' : ''}`}
+                    onClick={onOpenCourses}
+                >
+                    Courses
+                </button>
+            </div>
             {savedError ? (
                 <p className="sidebar__status sidebar__status--error">{savedError}</p>
             ) : isSyncing ? (
@@ -104,4 +123,3 @@ export function Sidebar({
         </aside>
     );
 }
-

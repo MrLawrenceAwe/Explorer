@@ -15,7 +15,7 @@ export function SavedTopicsList({ savedTopics, handleTopicRecall, handleTopicRem
                     onClick={() => setIsCollapsed((prev) => !prev)}
                 >
                     <div className="sidebar-section__heading">
-                        <h2>Saved topics</h2>
+                        <h2>Saved Topics</h2>
                         <span className="sidebar-section__count">{savedTopics.length}</span>
                     </div>
                     <span
