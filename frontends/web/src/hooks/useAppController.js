@@ -252,6 +252,8 @@ export function useAppController() {
             courses: courses.courses,
             onAddCourse: courses.addCourse,
             onDeleteCourse: courses.deleteCourse,
+            onDeleteModule: courses.deleteModuleFromCourse,
+            onDeleteTopic: courses.deleteTopicFromModule,
             onToggleCourse: courses.toggleCourse,
             onToggleModule: courses.toggleModule,
             onToggleTopic: courses.toggleTopic,

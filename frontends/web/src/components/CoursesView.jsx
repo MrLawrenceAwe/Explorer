@@ -32,10 +32,31 @@ function parseModules(rawModules) {
         .filter((module) => module.title);
 }
 
+function PlusIcon() {
+    return (
+        <svg className="courses-tree__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 5v14M5 12h14" />
+        </svg>
+    );
+}
+
+function TrashIcon() {
+    return (
+        <svg className="courses-tree__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6M14 11v6" />
+        </svg>
+    );
+}
+
 export function CoursesView({
     courses,
     onAddCourse,
     onDeleteCourse,
+    onDeleteModule,
+    onDeleteTopic,
     onToggleCourse,
     onToggleModule,
     onToggleTopic,
@@ -224,19 +245,21 @@ export function CoursesView({
                                     </label>
                                     <div className="courses-tree__summary-right">
                                         <span>
-                                            {course.modules.filter((module) => module.completed).length}/{course.modules.length} modules
+                                            {course.modules.filter((module) => module.completed).length}/{course.modules.length} Modules
                                         </span>
                                         <span>
-                                            {course.modules.flatMap((module) => module.topics).filter((topic) => topic.completed).length}/{course.modules.flatMap((module) => module.topics).length} topics
+                                            {course.modules.flatMap((module) => module.topics).filter((topic) => topic.completed).length}/{course.modules.flatMap((module) => module.topics).length} Topics
                                         </span>
-                                        <button
-                                            type="button"
-                                            className="courses-tree__add"
-                                            onClick={(event) => handleOpenModuleEditor(event, course.id)}
-                                            aria-label={`Add module to ${course.title}`}
-                                        >
-                                            + Add Module
-                                        </button>
+                                        {moduleEditorCourseId !== course.id ? (
+                                            <button
+                                                type="button"
+                                                className="courses-tree__add"
+                                                onClick={(event) => handleOpenModuleEditor(event, course.id)}
+                                                aria-label={`Add module to ${course.title}`}
+                                            >
+                                                <PlusIcon />
+                                            </button>
+                                        ) : null}
                                         <button
                                             type="button"
                                             className="courses-tree__delete"
@@ -247,37 +270,10 @@ export function CoursesView({
                                             }}
                                             aria-label={`Delete ${course.title}`}
                                         >
-                                            Delete
+                                            <TrashIcon />
                                         </button>
                                     </div>
                                 </summary>
-                                {moduleEditorCourseId === course.id ? (
-                                    <form className="courses-inline-form" onSubmit={(event) => handleModuleSubmit(event, course.id)}>
-                                        <input
-                                            type="text"
-                                            value={moduleDraft}
-                                            onChange={(event) => {
-                                                setModuleDraft(event.target.value);
-                                                setModuleError('');
-                                            }}
-                                            placeholder="Module or Module: Topic A, Topic B"
-                                            aria-label={`Module name for ${course.title}`}
-                                        />
-                                        <button type="submit">Add</button>
-                                        <button
-                                            type="button"
-                                            className="courses-inline-form__cancel"
-                                            onClick={() => {
-                                                setModuleEditorCourseId(null);
-                                                setModuleDraft('');
-                                                setModuleError('');
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        {moduleError ? <p className="courses-inline-form__error">{moduleError}</p> : null}
-                                    </form>
-                                ) : null}
                                 <ul className="courses-tree__modules">
                                     {course.modules.map((module) => (
                                         <li key={module.id}>
@@ -297,15 +293,34 @@ export function CoursesView({
                                                     </label>
                                                     <div className="courses-tree__module-actions">
                                                         <span className="courses-tree__topic-count">
-                                                            {module.topics.filter((topic) => topic.completed).length}/{module.topics.length} topics
+                                                            {module.topics.filter((topic) => topic.completed).length}/{module.topics.length} Topics
                                                         </span>
+                                                        {topicEditorModuleId !== module.id ? (
+                                                            <button
+                                                                type="button"
+                                                                className="courses-tree__add"
+                                                                onClick={(event) => handleOpenTopicEditor(event, module.id)}
+                                                                aria-label={`Add topic to ${module.title}`}
+                                                            >
+                                                                <PlusIcon />
+                                                            </button>
+                                                        ) : null}
                                                         <button
                                                             type="button"
-                                                            className="courses-tree__add"
-                                                            onClick={(event) => handleOpenTopicEditor(event, module.id)}
-                                                            aria-label={`Add topic to ${module.title}`}
+                                                            className="courses-tree__delete courses-tree__delete--inline"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                if (topicEditorModuleId === module.id) {
+                                                                    setTopicEditorModuleId(null);
+                                                                    setTopicDraft('');
+                                                                    setTopicError('');
+                                                                }
+                                                                onDeleteModule(course.id, module.id);
+                                                            }}
+                                                            aria-label={`Delete module ${module.title}`}
                                                         >
-                                                            + Add Topic
+                                                            <TrashIcon />
                                                         </button>
                                                     </div>
                                                 </summary>
@@ -314,17 +329,27 @@ export function CoursesView({
                                                     <ul className="courses-tree__topics">
                                                         {module.topics.map((topic) => (
                                                             <li key={topic.id}>
-                                                                <label className="courses-tree__check courses-tree__check--topic">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={topic.completed}
-                                                                        onChange={(event) =>
-                                                                            onToggleTopic(course.id, module.id, topic.id, event.target.checked)
-                                                                        }
-                                                                        aria-label={`Mark topic ${topic.title} complete`}
-                                                                    />
-                                                                    <span>{topic.title}</span>
-                                                                </label>
+                                                                <div className="courses-tree__topic-row">
+                                                                    <label className="courses-tree__check courses-tree__check--topic">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={topic.completed}
+                                                                            onChange={(event) =>
+                                                                                onToggleTopic(course.id, module.id, topic.id, event.target.checked)
+                                                                            }
+                                                                            aria-label={`Mark topic ${topic.title} complete`}
+                                                                        />
+                                                                        <span>{topic.title}</span>
+                                                                    </label>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="courses-tree__delete courses-tree__delete--inline"
+                                                                        onClick={() => onDeleteTopic(course.id, module.id, topic.id)}
+                                                                        aria-label={`Delete topic ${topic.title}`}
+                                                                    >
+                                                                        <TrashIcon />
+                                                                    </button>
+                                                                </div>
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -362,12 +387,39 @@ export function CoursesView({
                                         </li>
                                     ))}
                                 </ul>
+                                {moduleEditorCourseId === course.id ? (
+                                    <form className="courses-inline-form" onSubmit={(event) => handleModuleSubmit(event, course.id)}>
+                                        <input
+                                            type="text"
+                                            value={moduleDraft}
+                                            onChange={(event) => {
+                                                setModuleDraft(event.target.value);
+                                                setModuleError('');
+                                            }}
+                                            placeholder="Module or Module: Topic A, Topic B"
+                                            aria-label={`Module name for ${course.title}`}
+                                        />
+                                        <button type="submit">Add</button>
+                                        <button
+                                            type="button"
+                                            className="courses-inline-form__cancel"
+                                            onClick={() => {
+                                                setModuleEditorCourseId(null);
+                                                setModuleDraft('');
+                                                setModuleError('');
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        {moduleError ? <p className="courses-inline-form__error">{moduleError}</p> : null}
+                                    </form>
+                                ) : null}
                             </details>
                         );
                     })}
                 </div>
             ) : (
-                <p className="courses-empty">No courses yet. Click Add Course to start tracking progress.</p>
+                <p className="courses-empty">No courses yet.</p>
             )}
         </section>
     );

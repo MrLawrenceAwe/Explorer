@@ -241,9 +241,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.78rem;
-    padding: 4px 8px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     cursor: pointer;
 }
 
@@ -257,13 +257,34 @@
     background: var(--color-bg-base);
     color: var(--color-text-secondary);
     border-radius: var(--radius-md);
-    padding: var(--space-1) var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     cursor: pointer;
 }
 
 .courses-tree__delete:hover {
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.5);
+}
+
+.courses-tree__delete--inline {
+    width: 30px;
+    height: 30px;
+}
+
+.courses-tree__icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
 }
 
 .courses-tree__modules,
@@ -281,6 +302,13 @@
     padding-left: var(--space-6);
 }
 
+.courses-tree__topic-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
 .courses-tree__topic-count {
     color: var(--color-text-tertiary);
     font-size: 0.78rem;
@@ -288,20 +316,22 @@
 
 .courses-inline-form {
     margin-top: var(--space-2);
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto auto;
     align-items: center;
     gap: var(--space-2);
-    flex-wrap: wrap;
 }
 
 .courses-inline-form input {
-    flex: 1;
-    min-width: 220px;
+    width: 100%;
+    min-width: 0;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-bg-base);
     color: var(--color-text-primary);
-    padding: var(--space-2) var(--space-3);
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    line-height: 1.25;
 }
 
 .courses-inline-form input:focus {
@@ -314,7 +344,9 @@
     border-radius: var(--radius-md);
     background: var(--color-accent-primary);
     color: #fff;
-    padding: 6px 10px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    line-height: 1.1;
     font-weight: 600;
     cursor: pointer;
 }
@@ -326,7 +358,7 @@
 }
 
 .courses-inline-form__error {
-    flex-basis: 100%;
+    grid-column: 1 / -1;
     color: #ef4444;
     font-size: 0.8rem;
 }
@@ -353,5 +385,14 @@
 
     .courses-tree__topics {
         padding-left: var(--space-4);
+    }
+
+    .courses-inline-form {
+        grid-template-columns: 1fr auto auto;
+    }
+
+    .courses-tree__topic-row {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }

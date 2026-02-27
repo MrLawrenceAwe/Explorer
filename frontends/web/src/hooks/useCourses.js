@@ -9,8 +9,12 @@ function makeId() {
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function capitalizeTitle(value) {
+    return (value || '').replace(/(^|[\s/-])([a-z])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+}
+
 function normalizeTopic(topic) {
-    const title = (topic?.title || '').trim();
+    const title = capitalizeTitle((topic?.title || '').trim());
     if (!title) return null;
     return {
         id: topic?.id || makeId(),
@@ -40,7 +44,7 @@ function uniqueModules(modules) {
 }
 
 function normalizeModule(module) {
-    const title = (module?.title || '').trim();
+    const title = capitalizeTitle((module?.title || '').trim());
     if (!title) return null;
 
     const topics = Array.isArray(module?.topics)
@@ -60,7 +64,7 @@ function normalizeModule(module) {
 }
 
 function normalizeCourse(course) {
-    const title = (course?.title || '').trim();
+    const title = capitalizeTitle((course?.title || '').trim());
     if (!title) return null;
 
     const modules = Array.isArray(course?.modules)
@@ -110,7 +114,7 @@ export function useCourses() {
     }, [courses]);
 
     const addCourse = useCallback(({ title, modules }) => {
-        const safeTitle = (title || '').trim();
+        const safeTitle = capitalizeTitle((title || '').trim());
         const safeModules = Array.isArray(modules)
             ? modules
                 .map((module) => normalizeModule(module))
@@ -209,7 +213,7 @@ export function useCourses() {
     }, []);
 
     const addTopicToModule = useCallback((courseId, moduleId, topicTitle) => {
-        const safeTitle = (topicTitle || '').trim();
+        const safeTitle = capitalizeTitle((topicTitle || '').trim());
         if (!safeTitle) return false;
 
         let changed = false;
@@ -286,6 +290,51 @@ export function useCourses() {
         return changed;
     }, []);
 
+    const deleteModuleFromCourse = useCallback((courseId, moduleId) => {
+        setCourses((current) =>
+            current.map((course) => {
+                if (course.id !== courseId) return course;
+
+                const nextModules = course.modules.filter((module) => module.id !== moduleId);
+                if (nextModules.length === course.modules.length) {
+                    return course;
+                }
+
+                return syncCourseCompletion({
+                    ...course,
+                    modules: nextModules,
+                });
+            })
+        );
+    }, []);
+
+    const deleteTopicFromModule = useCallback((courseId, moduleId, topicId) => {
+        setCourses((current) =>
+            current.map((course) => {
+                if (course.id !== courseId) return course;
+
+                const updatedCourse = {
+                    ...course,
+                    modules: course.modules.map((module) => {
+                        if (module.id !== moduleId) return module;
+
+                        const nextTopics = module.topics.filter((topic) => topic.id !== topicId);
+                        if (nextTopics.length === module.topics.length) {
+                            return module;
+                        }
+
+                        return {
+                            ...module,
+                            topics: nextTopics,
+                        };
+                    }),
+                };
+
+                return syncCourseCompletion(updatedCourse);
+            })
+        );
+    }, []);
+
     return {
         courses,
         addCourse,
@@ -295,5 +344,7 @@ export function useCourses() {
         toggleTopic,
         addTopicToModule,
         addModuleToCourse,
+        deleteModuleFromCourse,
+        deleteTopicFromModule,
     };
 }
