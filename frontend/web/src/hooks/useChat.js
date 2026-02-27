@@ -52,7 +52,7 @@ export function useChat(apiBase, rememberReport) {
     }, []);
 
     const runReportFlow = useCallback(
-        async (generateRequest, assistantId, summaryLabel) => {
+        async (generateRequest, assistantId, topicLabel) => {
             abortRef.current = new AbortController();
             const statusLog = [];
             try {
@@ -102,7 +102,7 @@ export function useChat(apiBase, rememberReport) {
                 let buffer = "";
                 let finalText = "";
                 let finalOutline = null;
-                let finalTitle = summaryLabel || "";
+                let finalTitle = topicLabel || "";
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
@@ -142,7 +142,7 @@ export function useChat(apiBase, rememberReport) {
                 }
                 const resolvedText = finalText || "Explorer didn't return a report.";
                 const resolvedTitle = finalTitle || "Explorer Report";
-                const resolvedTopic = summaryLabel || resolvedTitle;
+                const resolvedTopic = topicLabel || resolvedTitle;
                 updateMessage(assistantId, (message) => ({
                     content: statusLog.length ? statusLog.join("\n") : (message.content || resolvedText),
                     statusLog: statusLog.length ? [...statusLog] : message.statusLog || [],
@@ -151,8 +151,8 @@ export function useChat(apiBase, rememberReport) {
                     reportTopic: message.reportTopic || resolvedTopic,
                     outline: finalOutline,
                 }));
-                if (finalText && summaryLabel) {
-                    rememberReport(summaryLabel, finalText, resolvedTitle, finalOutline);
+                if (finalText && topicLabel) {
+                    rememberReport(topicLabel, finalText, resolvedTitle, finalOutline);
                 }
                 return true;
             } catch (error) {

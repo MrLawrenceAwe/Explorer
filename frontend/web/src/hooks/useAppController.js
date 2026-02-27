@@ -34,11 +34,11 @@ export function useAppController() {
     const chat = useChat(appState.apiBase, saved.rememberReport);
     useBeforeUnloadWarning(chat.isRunning);
 
-    const { runTopicPrompt } = useGeneration({
+    const { generateReportFromTopic } = useGeneration({
         user: appState.user,
         modelsPayload: settings.modelsPayload,
         sectionCount: appState.sectionCount,
-        rememberTopic: saved.rememberTopic,
+        rememberTopicTitle: saved.rememberTopicTitle,
         appendMessage: chat.appendMessage,
         runReportFlow: chat.runReportFlow,
         setActiveReport: appState.setActiveReport,
@@ -51,7 +51,7 @@ export function useAppController() {
         suggestionModel: settings.suggestionModel,
         rememberTopics: saved.rememberTopics,
         isRunning: chat.isRunning,
-        runTopicPrompt,
+        generateReportFromTopic,
     });
 
     const explore = useExplore({
@@ -94,7 +94,7 @@ export function useAppController() {
         setChatAvoidTopics: appState.setChatAvoidTopics,
         setChatIncludeTopics: appState.setChatIncludeTopics,
         isRunning: chat.isRunning,
-        runTopicPrompt,
+        generateReportFromTopic,
         setIsHomeView: appState.setIsHomeView,
         messages: chat.messages,
         mode: appState.mode,
@@ -116,9 +116,9 @@ export function useAppController() {
     const sidebarProps = buildSidebarProps({
         saved,
         collections: saved.collections,
-        topicViewBarValue: appState.topicViewBarValue,
-        setTopicViewBarValue: appState.setTopicViewBarValue,
-        handleTopicViewBarSubmit,
+        quickTopicInputValue: appState.quickTopicInputValue,
+        setQuickTopicInputValue: appState.setQuickTopicInputValue,
+        handleQuickTopicSubmit,
         handleTopicRecall,
         handleForgetReport,
         handleReportOpen,
@@ -213,12 +213,12 @@ export function useAppController() {
         appState.handleReportOpen(reportPayload);
     }
 
-    function handleTopicViewBarSubmit(event) {
+    function handleQuickTopicSubmit(event) {
         event.preventDefault();
-        const normalized = appState.topicViewBarValue.trim();
+        const normalized = appState.quickTopicInputValue.trim();
         if (!normalized) return;
         handleOpenTopic(normalized);
-        appState.setTopicViewBarValue('');
+        appState.setQuickTopicInputValue('');
     }
 
     function handleTopicRecall(topic) {
@@ -253,9 +253,9 @@ export function useAppController() {
 function buildSidebarProps({
     saved,
     collections,
-    topicViewBarValue,
-    setTopicViewBarValue,
-    handleTopicViewBarSubmit,
+    quickTopicInputValue,
+    setQuickTopicInputValue,
+    handleQuickTopicSubmit,
     handleTopicRecall,
     handleForgetReport,
     handleReportOpen,
@@ -279,9 +279,9 @@ function buildSidebarProps({
         handleTopicRecall,
         handleTopicRemove: forgetTopic,
         handleReportRemove: handleForgetReport,
-        topicViewBarValue,
-        setTopicViewBarValue,
-        handleTopicViewBarSubmit,
+        quickTopicInputValue,
+        setQuickTopicInputValue,
+        handleQuickTopicSubmit,
         onOpenSettings: handleOpenSettings,
         onOpenCourses: handleOpenCourses,
         onOpenExplorer: handleOpenExplorer,

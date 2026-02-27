@@ -98,10 +98,10 @@ class SuggestionService:
                 title = (section.get("title") or "").strip()
                 if title:
                     headings.append(title)
-                for sub in section.get("subsections") or []:
-                    cleaned_sub = (sub or "").strip()
-                    if cleaned_sub:
-                        headings.append(cleaned_sub)
+                for subsection_title in section.get("subsections") or []:
+                    cleaned_subsection = (subsection_title or "").strip()
+                    if cleaned_subsection:
+                        headings.append(cleaned_subsection)
         return headings
 
     def _build_prompt(self, seeds: Sequence[str]) -> str:

@@ -125,11 +125,11 @@ export function useSavedData({ apiBase, user }) {
         return reportToDelete;
     }, [apiBase, user, savedReports]);
 
-    const rememberTopics = useCallback(async (prompts) => {
-        const normalizedPrompts = (Array.isArray(prompts) ? prompts : [prompts])
+    const rememberTopics = useCallback(async (titles) => {
+        const normalizedTitles = (Array.isArray(titles) ? titles : [titles])
             .map((entry) => (entry || '').trim())
             .filter(Boolean);
-        if (!normalizedPrompts.length) return;
+        if (!normalizedTitles.length) return;
 
         if (!user?.email) {
             setError('Set a user email in Settings to save topics.');
@@ -138,9 +138,9 @@ export function useSavedData({ apiBase, user }) {
 
         try {
             const created = await Promise.all(
-                normalizedPrompts.map((prompt) =>
-                    createSavedTopic(apiBase, user, prompt).catch((err) => {
-                        console.error('Failed to save topic', prompt, err);
+                normalizedTitles.map((title) =>
+                    createSavedTopic(apiBase, user, title).catch((err) => {
+                        console.error('Failed to save topic', title, err);
                         return null;
                     })
                 )
@@ -152,7 +152,7 @@ export function useSavedData({ apiBase, user }) {
                     const merged = [
                         ...valid.filter((topic) => !existingIds.has(topic.id)),
                         ...current.filter(
-                            (entry) => !valid.some((topic) => topic.prompt === entry.prompt)
+                            (entry) => !valid.some((topic) => topic.title === entry.title)
                         ),
                     ];
                     return merged.slice(0, MAX_SAVED_TOPICS);
@@ -166,8 +166,8 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [apiBase, loadTopics, user]);
 
-    const rememberTopic = useCallback(
-        (prompt) => rememberTopics([prompt]),
+    const rememberTopicTitle = useCallback(
+        (title) => rememberTopics([title]),
         [rememberTopics]
     );
 
@@ -211,7 +211,7 @@ export function useSavedData({ apiBase, user }) {
         rememberReport,
         forgetReport,
         rememberTopics,
-        rememberTopic,
+        rememberTopicTitle,
         forgetTopic,
         updateTopicCollection,
     };

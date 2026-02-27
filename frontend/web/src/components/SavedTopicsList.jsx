@@ -32,15 +32,15 @@ export function SavedTopicsList({ savedTopics, handleTopicRecall, handleTopicRem
                                 <button
                                     type="button"
                                     className="sidebar-entry"
-                                    onClick={() => handleTopicRecall(topic.prompt)}
+                                    onClick={() => handleTopicRecall(topic.title)}
                                 >
                                     <span className="sidebar-entry__eyebrow">Topic</span>
-                                    <span className="sidebar-entry__title">{topic.prompt}</span>
+                                    <span className="sidebar-entry__title">{topic.title}</span>
                                 </button>
                                 <button
                                     type="button"
                                     className="sidebar-entry__delete-icon"
-                                    aria-label={`Delete saved topic ${topic.prompt}`}
+                                    aria-label={`Delete saved topic ${topic.title}`}
                                     onClick={(event) => {
                                         event.stopPropagation();
                                         handleTopicRemove?.(topic.id);

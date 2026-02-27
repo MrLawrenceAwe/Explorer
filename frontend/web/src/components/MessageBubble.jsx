@@ -58,8 +58,8 @@ export function MessageBubble({ message, onViewReport }) {
                                 <strong>{section.title}</strong>
                                 {!!section.subsections?.length && (
                                     <ul>
-                                        {section.subsections.map((sub) => (
-                                            <li key={`${section.title}-${sub}`}>{sub}</li>
+                                        {section.subsections.map((subsectionTitle) => (
+                                            <li key={`${section.title}-${subsectionTitle}`}>{subsectionTitle}</li>
                                         ))}
                                     </ul>
                                 )}

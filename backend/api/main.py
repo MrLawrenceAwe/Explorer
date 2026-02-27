@@ -29,7 +29,7 @@ def list_routes():
     return {"paths": [route.path for route in app.routes]}
 
 
-frontend_dir = Path(__file__).resolve().parents[2] / "frontends" / "web" / "dist"
+frontend_dir = Path(__file__).resolve().parents[2] / "frontend" / "web" / "dist"
 if frontend_dir.exists():
     # Serve the built frontend and assets from the root so /assets/* resolves correctly.
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")

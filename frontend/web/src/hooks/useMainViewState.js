@@ -16,7 +16,7 @@ export function useMainViewState({
     const isTopicViewOpen = Boolean(activeTopic);
 
     const isTopicSaved = useMemo(
-        () => savedTopics.some((entry) => entry.prompt === activeTopic),
+        () => savedTopics.some((entry) => entry.title === activeTopic),
         [savedTopics, activeTopic]
     );
 

@@ -7,7 +7,7 @@ export function useTopicView({
     suggestionModel,
     rememberTopics,
     isRunning,
-    runTopicPrompt,
+    generateReportFromTopic,
 }) {
     const [activeTopic, setActiveTopic] = useState("");
     const [draftTopic, setDraftTopic] = useState("");
@@ -158,8 +158,8 @@ export function useTopicView({
         closeTopicView();
         const avoid = parseTopicsList(avoidTopics);
         const include = parseTopicsList(includeTopics);
-        await runTopicPrompt(activeTopic, { avoid, include });
-    }, [closeTopicView, isRunning, runTopicPrompt, activeTopic, avoidTopics, includeTopics]);
+        await generateReportFromTopic(activeTopic, { avoid, include });
+    }, [closeTopicView, isRunning, generateReportFromTopic, activeTopic, avoidTopics, includeTopics]);
 
     const handleTopicViewSave = useCallback(() => {
         if (!activeTopic) return;

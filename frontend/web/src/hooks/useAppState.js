@@ -11,7 +11,7 @@ export function useAppState() {
     const [user, setUser] = useState(loadUserProfile);
     const [activeReport, setActiveReport] = useState(null);
     const [composerValue, setComposerValue] = useState('');
-    const [topicViewBarValue, setTopicViewBarValue] = useState('');
+    const [quickTopicInputValue, setQuickTopicInputValue] = useState('');
     const [mode, setMode] = useState('topic');
     const [sectionCount, setSectionCount] = useState(3);
     const [chatAvoidTopics, setChatAvoidTopics] = useState('');
@@ -83,8 +83,8 @@ export function useAppState() {
         setActiveReport,
         composerValue,
         setComposerValue,
-        topicViewBarValue,
-        setTopicViewBarValue,
+        quickTopicInputValue,
+        setQuickTopicInputValue,
         mode,
         setMode,
         sectionCount,

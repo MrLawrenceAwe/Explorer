@@ -22,7 +22,7 @@ export function useExplore({
             setExploreLoading(true);
             setSelectedSuggestions([]);
             const seeds = [
-                ...savedTopics.map((entry) => entry.prompt),
+                ...savedTopics.map((entry) => entry.title),
                 ...savedReports.map((entry) => entry.topic),
             ];
             const remote = await fetchTopicSuggestions(apiBase, {

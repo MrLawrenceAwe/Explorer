@@ -10,7 +10,7 @@ export function useChatPaneController({
     setChatAvoidTopics,
     setChatIncludeTopics,
     isRunning,
-    runTopicPrompt,
+    generateReportFromTopic,
     setIsHomeView,
     messages,
     mode,
@@ -27,17 +27,17 @@ export function useChatPaneController({
     const handleTopicSubmit = useCallback(
         async (event) => {
             event.preventDefault();
-            const prompt = composerValue.trim();
-            if (!prompt || isRunning) return;
+            const topicTitle = composerValue.trim();
+            if (!topicTitle || isRunning) return;
             setComposerValue('');
             setIsHomeView(false);
             const avoid = parseTopicsList(chatAvoidTopics);
             const include = parseTopicsList(chatIncludeTopics);
-            await runTopicPrompt(prompt, { avoid, include });
+            await generateReportFromTopic(topicTitle, { avoid, include });
             setChatAvoidTopics('');
             setChatIncludeTopics('');
         },
-        [composerValue, isRunning, runTopicPrompt, chatAvoidTopics, chatIncludeTopics, setComposerValue, setIsHomeView, setChatAvoidTopics, setChatIncludeTopics]
+        [composerValue, isRunning, generateReportFromTopic, chatAvoidTopics, chatIncludeTopics, setComposerValue, setIsHomeView, setChatAvoidTopics, setChatIncludeTopics]
     );
 
     return {

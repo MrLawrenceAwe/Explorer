@@ -13,7 +13,7 @@ A modern React application for the Explorer Copilot, built with Vite.
 
 2. **Start the Frontend**:
    ```bash
-   cd frontends/web
+   cd frontend/web
    npm install  # If you haven't already
    npm run dev
    ```

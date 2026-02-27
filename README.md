@@ -8,8 +8,8 @@ Turn any topic into a polished, audio-friendly report anchored by a structured o
 
 - `backend/` — FastAPI APIs plus report generation domain logic, prompts, and persistence helpers (see `backend/api` for the HTTP layer).
 - `cli/` — helper CLI tooling for driving the local report generator and saving generated artifacts.
-- `frontends/web/` — web front-end (see `frontends/web/README.md`).
-- `frontends/ios/` — upcoming ios app.
+- `frontend/web/` — web front-end (see `frontend/web/README.md`).
+- `frontend/ios/` — upcoming ios app.
 
 ---
 
@@ -86,7 +86,7 @@ ChatGPT requires HTTPS for deployed MCP servers; local HTTP is fine for dev.
 ### 2) Start the Apps SDK frontend
 
 ```bash
-cd mcp_tools_ui
+cd mcp-tools-ui
 npm install
 APP_MCP_URL="http://localhost:8787/sse" npm run dev
 ```

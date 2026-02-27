@@ -101,10 +101,10 @@ export function CollectionsList({
             <button
                 type="button"
                 className="collections__topic-button"
-                onClick={() => onTopicRecall(topic.prompt)}
-                title={topic.prompt}
+                onClick={() => onTopicRecall(topic.title)}
+                title={topic.title}
             >
-                <span className="collections__topic-text">{topic.prompt}</span>
+                <span className="collections__topic-text">{topic.title}</span>
             </button>
             <button
                 type="button"
@@ -113,13 +113,13 @@ export function CollectionsList({
                     event.stopPropagation();
                     onTopicRemove(topic.id);
                 }}
-                aria-label={`Remove "${topic.prompt}"`}
+                aria-label={`Remove "${topic.title}"`}
             >
                 ×
             </button>
             <select
                 className="collections__topic-move"
-                aria-label={`Move "${topic.prompt}" to collection`}
+                aria-label={`Move "${topic.title}" to collection`}
                 value={topic.collectionId || ""}
                 onChange={(event) => {
                     event.stopPropagation();

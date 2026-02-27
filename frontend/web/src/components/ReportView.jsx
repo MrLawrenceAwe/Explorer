@@ -178,14 +178,14 @@ export function ReportView({ report, onClose, onOpenTopic }) {
                                 </button>
                                 {section.subsections?.length ? (
                                     <ul className="report-outline__subsections">
-                                        {section.subsections.map((sub, subIndex) => (
-                                            <li key={`${section.title}-${sub}-${subIndex}`}>
+                                        {section.subsections.map((subsectionTitle, subsectionIndex) => (
+                                            <li key={`${section.title}-${subsectionTitle}-${subsectionIndex}`}>
                                                 <button
                                                     type="button"
                                                     className="report-outline__subsection"
-                                                    onClick={() => handleSelectHeading(sub)}
+                                                    onClick={() => handleSelectHeading(subsectionTitle)}
                                                 >
-                                                    {sub}
+                                                    {subsectionTitle}
                                                 </button>
                                             </li>
                                         ))}

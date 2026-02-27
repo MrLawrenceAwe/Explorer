@@ -10,9 +10,9 @@ export function Sidebar({
     handleTopicRecall,
     handleTopicRemove,
     handleReportRemove,
-    topicViewBarValue,
-    setTopicViewBarValue,
-    handleTopicViewBarSubmit,
+    quickTopicInputValue,
+    setQuickTopicInputValue,
+    handleQuickTopicSubmit,
     onOpenSettings,
     onOpenCourses,
     onOpenExplorer,
@@ -42,7 +42,7 @@ export function Sidebar({
     useCollections = false,
 }) {
     return (
-        <aside className="sidebar" aria-label="Saved prompts and generated reports">
+        <aside className="sidebar" aria-label="Saved topics and generated reports">
             <button
                 type="button"
                 className="sidebar__brand"
@@ -79,9 +79,9 @@ export function Sidebar({
                 <p className="sidebar__status">Syncing saved items…</p>
             ) : null}
             <GenerationBar
-                topicViewBarValue={topicViewBarValue}
-                setTopicViewBarValue={setTopicViewBarValue}
-                handleTopicViewBarSubmit={handleTopicViewBarSubmit}
+                quickTopicInputValue={quickTopicInputValue}
+                setQuickTopicInputValue={setQuickTopicInputValue}
+                handleQuickTopicSubmit={handleQuickTopicSubmit}
             />
             <div className="sidebar__content">
                 {useCollections ? (

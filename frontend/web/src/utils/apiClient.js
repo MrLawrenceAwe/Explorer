@@ -43,7 +43,7 @@ async function ensureOk(response, fallbackMessage, { includeDetail = false } = {
 function mapSavedTopic(topic) {
     return {
         id: topic.id,
-        prompt: topic.title,
+        title: topic.title,
         collectionId: topic.collection_id || null,
     };
 }
