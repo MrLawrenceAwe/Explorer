@@ -223,3 +223,37 @@ def test_prepare_report_limits_outline_title_length(tmp_path: Path):
     handle = store.prepare_report(request, outline)
     topic = _fetch_saved_topic(session_factory, handle.report_id)
     assert topic.title == long_title[:255]
+
+
+def test_prepare_report_does_not_merge_different_titles_with_same_slug(tmp_path: Path):
+    session_factory = _session_factory()
+    store = GeneratedReportStore(
+        base_dir=tmp_path / "reports", session_factory=session_factory
+    )
+    outline = Outline(report_title="Slug Collision", sections=[])
+    first = GenerateRequest.model_validate(
+        {
+            "topic": "AI/ML",
+            "mode": "generate_report",
+            "user_email": "user@example.com",
+            "username": "User",
+        }
+    )
+    second = GenerateRequest.model_validate(
+        {
+            "topic": "AI ML",
+            "mode": "generate_report",
+            "user_email": "user@example.com",
+            "username": "User",
+        }
+    )
+
+    first_handle = store.prepare_report(first, outline)
+    second_handle = store.prepare_report(second, outline)
+
+    with session_scope(session_factory) as session:
+        first_report = session.get(Report, first_handle.report_id)
+        second_report = session.get(Report, second_handle.report_id)
+        assert first_report is not None
+        assert second_report is not None
+        assert first_report.saved_topic_id != second_report.saved_topic_id

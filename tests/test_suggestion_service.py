@@ -131,3 +131,14 @@ def test_generate_keeps_guided_results_when_free_roam_fails():
         "guided",
     ]
     assert len(client.calls) == 2
+
+
+def test_parse_titles_accepts_fenced_json_payload():
+    service = SuggestionService(text_client=object(), session_factory=None)
+    raw = """```json
+{"suggestions":[{"title":"AI Safety"},{"title":"Model Evaluation"}]}
+```"""
+
+    titles = service._parse_titles(raw, 5)
+
+    assert titles == ["AI Safety", "Model Evaluation"]

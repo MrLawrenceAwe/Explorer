@@ -211,7 +211,7 @@ class GeneratedReportStore:
             existing = session.scalar(select(SavedTopic).where(SavedTopic.slug == slug))
             if existing is None:
                 break
-            if existing.owner_user_id == user.id:
+            if existing.owner_user_id == user.id and existing.title == title:
                 return existing
             slug = f"{base_slug}-{uuid.uuid4().hex[:8]}"
         topic = SavedTopic(

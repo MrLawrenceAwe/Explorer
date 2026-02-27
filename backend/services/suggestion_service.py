@@ -195,9 +195,24 @@ class SuggestionService:
 
     @staticmethod
     def _try_json_parse(payload: str) -> object:
+        cleaned = (payload or "").strip()
+        if cleaned.startswith("```") and cleaned.endswith("```"):
+            cleaned = cleaned.strip("`").strip()
+            newline = cleaned.find("\n")
+            if newline != -1:
+                cleaned = cleaned[newline + 1 :].strip()
         try:
-            return json.loads(payload)
+            return json.loads(cleaned)
         except Exception:
+            # Accept model responses that prepend natural language before JSON.
+            for marker in ("{", "["):
+                start = cleaned.find(marker)
+                if start == -1:
+                    continue
+                try:
+                    return json.loads(cleaned[start:])
+                except Exception:
+                    continue
             return None
 
     @staticmethod
