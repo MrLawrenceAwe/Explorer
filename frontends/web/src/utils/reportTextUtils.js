@@ -20,7 +20,7 @@ export function cleanHeadingForTopic(heading) {
     let cleaned = original.replace(/^(section|chapter)\s+\d+\s*[:.)-]?\s*/i, "");
     cleaned = cleaned.replace(/^\d+\s*[:.)-]?\s*/, "");
     cleaned = cleaned.replace(/^(introduction|background)\s*[:.)-]?\s*/i, "");
-    cleaned = cleaned.replace(/^[\-\u2022*]\s*/, "");
+    cleaned = cleaned.replace(/^[-\u2022*]\s*/, "");
     cleaned = cleaned.trim();
     return cleaned || original;
 }

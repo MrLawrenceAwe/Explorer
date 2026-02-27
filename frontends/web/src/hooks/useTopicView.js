@@ -24,9 +24,6 @@ export function useTopicView({
     const topicSuggestionsRef = useRef(null);
     const topicViewEditorRef = useRef(null);
     const skipTopicCommitRef = useRef(false);
-
-
-
     useEffect(() => {
         if (isTopicEditing) {
             topicViewEditorRef.current?.focus();
@@ -34,25 +31,35 @@ export function useTopicView({
         }
     }, [isTopicEditing]);
 
-    useEffect(() => {
-        if (!activeTopic || suggestionsPaused) return;
-        const controller = new AbortController();
+    const loadSuggestions = useCallback(async (topic, signal) => {
         setTopicSuggestionsLoading(true);
-        const loadSuggestions = async () => {
+        try {
             const remote = await fetchTopicSuggestions(apiBase, {
-                topic: activeTopic,
+                topic,
                 seeds: [],
                 includeReportHeadings: false,
                 model: suggestionModel,
-                signal: controller.signal,
+                signal,
             });
-            if (controller.signal.aborted) return;
+            if (signal.aborted) return;
             setTopicSuggestions(remote || []);
-            setTopicSuggestionsLoading(false);
-        };
-        loadSuggestions().catch(() => setTopicSuggestionsLoading(false));
+        } finally {
+            if (!signal.aborted) {
+                setTopicSuggestionsLoading(false);
+            }
+        }
+    }, [apiBase, suggestionModel]);
+
+    useEffect(() => {
+        if (!activeTopic || suggestionsPaused) return;
+        const controller = new AbortController();
+        loadSuggestions(activeTopic, controller.signal).catch(() => {
+            if (!controller.signal.aborted) {
+                setTopicSuggestionsLoading(false);
+            }
+        });
         return () => controller.abort();
-    }, [apiBase, topicSuggestionsNonce, activeTopic, suggestionModel, suggestionsPaused]);
+    }, [activeTopic, loadSuggestions, suggestionsPaused, topicSuggestionsNonce]);
 
     const openTopicView = useCallback((topic, options = {}) => {
         const normalized = (topic || "").trim();
@@ -179,6 +186,7 @@ export function useTopicView({
 
     const handleRefreshSuggestions = useCallback(() => {
         setSuggestionsPaused(false);
+        setTopicSuggestionsLoading(true);
         setTopicSuggestionsNonce((value) => value + 1);
     }, []);
 

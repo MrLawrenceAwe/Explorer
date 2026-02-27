@@ -37,14 +37,10 @@ export function CollectionsList({
     // Focus input when editing
     useEffect(() => {
         if (editingCollectionId && editInputRef.current) {
-            const collection = collections.find((entry) => entry.id === editingCollectionId);
-            if (collection) {
-                setEditName(collection.name);
-                editInputRef.current.focus();
-                editInputRef.current.select();
-            }
+            editInputRef.current.focus();
+            editInputRef.current.select();
         }
-    }, [editingCollectionId, collections]);
+    }, [editingCollectionId]);
 
     // Group topics by collection
     const topicsByCollection = {};
@@ -72,7 +68,10 @@ export function CollectionsList({
         event.preventDefault();
         if (editName.trim() && editingCollectionId) {
             onUpdateCollection(editingCollectionId, { name: editName.trim() });
+            setEditName('');
+            return;
         }
+        handleCancelEditing();
     };
 
     const handleCreateKeyDown = (event) => {
@@ -83,8 +82,18 @@ export function CollectionsList({
 
     const handleEditKeyDown = (event) => {
         if (event.key === 'Escape') {
-            onCancelEditing();
+            handleCancelEditing();
         }
+    };
+
+    const handleCancelEditing = () => {
+        setEditName('');
+        onCancelEditing();
+    };
+
+    const handleStartEditing = (collection) => {
+        setEditName(collection.name);
+        onStartEditing(collection.id);
     };
 
     const renderTopicItem = (topic, currentCollectionId = null) => (
@@ -203,8 +212,9 @@ export function CollectionsList({
                                             onBlur={() => {
                                                 if (editName.trim()) {
                                                     onUpdateCollection(editingCollectionId, { name: editName.trim() });
+                                                    setEditName('');
                                                 } else {
-                                                    onCancelEditing();
+                                                    handleCancelEditing();
                                                 }
                                             }}
                                         />
@@ -234,7 +244,7 @@ export function CollectionsList({
                                             <button
                                                 type="button"
                                                 className="collections__action-btn"
-                                                onClick={() => onStartEditing(collection.id)}
+                                                onClick={() => handleStartEditing(collection)}
                                                 aria-label={`Edit "${collection.name}"`}
                                                 title="Rename"
                                             >

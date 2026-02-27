@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useAppState } from './useAppState';
 import { useSettingsController } from './useSettingsController';
 import { useSavedData } from './useSavedData';
@@ -19,21 +19,12 @@ export function useAppController() {
     const courses = useCourses();
 
     const settings = useSettingsController({ user: appState.user, setUser: appState.setUser });
-
     const savedData = useSavedData({ apiBase: appState.apiBase, user: appState.user });
-    const handleSavedDataError = useCallback(
-        (message) => savedData.setError(message),
-        [savedData.setError]
-    );
-    const handleTopicMoved = useCallback(
-        (updatedTopic) => savedData.updateTopicCollection(updatedTopic.id, updatedTopic.collectionId),
-        [savedData.updateTopicCollection]
-    );
     const collections = useCollections({
         apiBase: appState.apiBase,
         user: appState.user,
         onTopicMoved: handleTopicMoved,
-        onError: handleSavedDataError,
+        onError: savedData.setError,
     });
     const saved = {
         ...savedData,
@@ -42,21 +33,6 @@ export function useAppController() {
 
     const chat = useChat(appState.apiBase, saved.rememberReport);
     useBeforeUnloadWarning(chat.isRunning);
-
-    const handleForgetReport = useCallback(
-        async (reportId) => {
-            const reportToDelete = await saved.forgetReport(reportId);
-            if (!reportToDelete || chat.isRunning) return;
-
-            const assistantMsg = findLatestAssistantReportMessage(chat.messages);
-            if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
-                chat.setMessages([]);
-                appState.setIsHomeView(true);
-                setActivePage('explore');
-            }
-        },
-        [appState.setIsHomeView, chat.isRunning, chat.messages, chat.setMessages, saved.forgetReport]
-    );
 
     const { runTopicPrompt } = useGeneration({
         user: appState.user,
@@ -78,71 +54,6 @@ export function useAppController() {
         runTopicPrompt,
     });
 
-    const handleOpenTopic = useCallback(
-        (topic, options = {}) => {
-            const safeTopic = appState.normalizeTopicForOpen(topic, options);
-            if (!safeTopic) return;
-            setActivePage('explore');
-            topicView.openTopicView(safeTopic, {
-                pauseSuggestions: Boolean(options.pauseSuggestions),
-            });
-        },
-        [appState.normalizeTopicForOpen, topicView.openTopicView]
-    );
-
-    const topicViewController = {
-        ...topicView,
-        handleOpenTopic,
-    };
-
-    const handleReportOpen = useCallback(
-        (reportPayload) => {
-            topicView.closeTopicView();
-            setActivePage('explore');
-            appState.handleReportOpen(reportPayload);
-        },
-        [appState.handleReportOpen, topicView.closeTopicView]
-    );
-
-    const handleTopicViewBarSubmit = useCallback(
-        (event) => {
-            event.preventDefault();
-            const normalized = appState.topicViewBarValue.trim();
-            if (!normalized) return;
-            handleOpenTopic(normalized);
-            appState.setTopicViewBarValue('');
-        },
-        [appState.setTopicViewBarValue, appState.topicViewBarValue, handleOpenTopic]
-    );
-
-    const handleTopicRecall = useCallback((topic) => {
-        handleOpenTopic(topic);
-    }, [handleOpenTopic]);
-
-    const handleReset = useCallback(() => {
-        setActivePage('explore');
-        topicView.closeTopicView();
-        appState.resetToHome(chat.isRunning ? null : () => chat.setMessages([]));
-    }, [appState.resetToHome, chat.isRunning, chat.setMessages, topicView.closeTopicView]);
-
-    const handleGeneratingReportSelect = useCallback(() => {
-        setActivePage('explore');
-        appState.setActiveReport(null);
-        topicView.closeTopicView();
-        appState.setIsHomeView(false);
-    }, [appState.setActiveReport, appState.setIsHomeView, topicView.closeTopicView]);
-
-    const handleOpenCourses = useCallback(() => {
-        topicView.closeTopicView();
-        appState.setActiveReport(null);
-        appState.setIsHomeView(false);
-        setActivePage('courses');
-    }, [appState.setActiveReport, appState.setIsHomeView, topicView.closeTopicView]);
-
-    const handleOpenExplorer = useCallback(() => {
-        setActivePage('explore');
-    }, []);
-
     const explore = useExplore({
         apiBase: appState.apiBase,
         savedTopics: saved.savedTopics,
@@ -150,18 +61,6 @@ export function useAppController() {
         suggestionModel: settings.suggestionModel,
         rememberTopics: saved.rememberTopics,
     });
-    const exploreProps = {
-        exploreSuggestions: explore.exploreSuggestions,
-        exploreLoading: explore.exploreLoading,
-        selectedSuggestions: explore.selectedSuggestions,
-        exploreSelectMode: explore.exploreSelectMode,
-        exploreSelectToggleRef: explore.exploreSelectToggleRef,
-        exploreSuggestionsRef: explore.exploreSuggestionsRef,
-        handleRefreshExplore: explore.handleRefreshExplore,
-        handleToggleExploreSuggestion: explore.handleToggleExploreSuggestion,
-        toggleExploreSelectMode: explore.toggleExploreSelectMode,
-        handleOpenTopic,
-    };
 
     const outline = useOutlineController({
         user: appState.user,
@@ -210,6 +109,10 @@ export function useAppController() {
         modelSelectionProps: settings.modelSelectionProps,
     });
 
+    const topicViewController = {
+        ...topicView,
+        handleOpenTopic,
+    };
     const sidebarProps = buildSidebarProps({
         saved,
         collections: saved.collections,
@@ -228,7 +131,6 @@ export function useAppController() {
         handleOpenSettings: settings.handleOpenSettings,
         generatingReport: mainViewState.generatingReport,
     });
-
     const topicViewProps = buildTopicViewProps({
         topicViewController,
         modelSelectionProps: settings.modelSelectionProps,
@@ -237,14 +139,24 @@ export function useAppController() {
         setSectionCount: appState.setSectionCount,
         isRunning: chat.isRunning,
     });
-
     const reportViewProps = {
         isOpen: appState.isReportViewOpen,
         report: appState.activeReport,
         onClose: appState.handleReportClose,
         onOpenTopic: handleOpenTopic,
     };
-
+    const exploreProps = {
+        exploreSuggestions: explore.exploreSuggestions,
+        exploreLoading: explore.exploreLoading,
+        selectedSuggestions: explore.selectedSuggestions,
+        exploreSelectMode: explore.exploreSelectMode,
+        exploreSelectToggleRef: explore.exploreSelectToggleRef,
+        exploreSuggestionsRef: explore.exploreSuggestionsRef,
+        handleRefreshExplore: explore.handleRefreshExplore,
+        handleToggleExploreSuggestion: explore.handleToggleExploreSuggestion,
+        toggleExploreSelectMode: explore.toggleExploreSelectMode,
+        handleOpenTopic,
+    };
     const mainProps = {
         chatPaneClassName: mainViewState.chatPaneClassName,
         isCoursesPage: activePage === 'courses',
@@ -269,6 +181,73 @@ export function useAppController() {
     };
 
     return { sidebarProps, mainProps, settingsProps: settings.settingsProps };
+
+    function handleTopicMoved(updatedTopic) {
+        savedData.updateTopicCollection(updatedTopic.id, updatedTopic.collectionId);
+    }
+
+    async function handleForgetReport(reportId) {
+        const reportToDelete = await saved.forgetReport(reportId);
+        if (!reportToDelete || chat.isRunning) return;
+
+        const assistantMsg = findLatestAssistantReportMessage(chat.messages);
+        if (assistantMsg && assistantMsg.reportTopic === reportToDelete.topic) {
+            chat.setMessages([]);
+            appState.setIsHomeView(true);
+            setActivePage('explore');
+        }
+    }
+
+    function handleOpenTopic(topic, options = {}) {
+        const safeTopic = appState.normalizeTopicForOpen(topic, options);
+        if (!safeTopic) return;
+        setActivePage('explore');
+        topicView.openTopicView(safeTopic, {
+            pauseSuggestions: Boolean(options.pauseSuggestions),
+        });
+    }
+
+    function handleReportOpen(reportPayload) {
+        topicView.closeTopicView();
+        setActivePage('explore');
+        appState.handleReportOpen(reportPayload);
+    }
+
+    function handleTopicViewBarSubmit(event) {
+        event.preventDefault();
+        const normalized = appState.topicViewBarValue.trim();
+        if (!normalized) return;
+        handleOpenTopic(normalized);
+        appState.setTopicViewBarValue('');
+    }
+
+    function handleTopicRecall(topic) {
+        handleOpenTopic(topic);
+    }
+
+    function handleReset() {
+        setActivePage('explore');
+        topicView.closeTopicView();
+        appState.resetToHome(chat.isRunning ? null : () => chat.setMessages([]));
+    }
+
+    function handleGeneratingReportSelect() {
+        setActivePage('explore');
+        appState.setActiveReport(null);
+        topicView.closeTopicView();
+        appState.setIsHomeView(false);
+    }
+
+    function handleOpenCourses() {
+        topicView.closeTopicView();
+        appState.setActiveReport(null);
+        appState.setIsHomeView(false);
+        setActivePage('courses');
+    }
+
+    function handleOpenExplorer() {
+        setActivePage('explore');
+    }
 }
 
 function buildSidebarProps({
@@ -330,7 +309,14 @@ function buildSidebarProps({
     };
 }
 
-function buildTopicViewProps({ topicViewController, modelSelectionProps, mainViewState, sectionCount, setSectionCount, isRunning }) {
+function buildTopicViewProps({
+    topicViewController,
+    modelSelectionProps,
+    mainViewState,
+    sectionCount,
+    setSectionCount,
+    isRunning,
+}) {
     return {
         isOpen: mainViewState.isTopicViewOpen,
         topic: topicViewController.activeTopic,

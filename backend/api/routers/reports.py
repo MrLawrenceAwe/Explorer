@@ -6,7 +6,6 @@ import uuid
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import EmailStr
-from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.api.dependencies import (
@@ -19,10 +18,12 @@ from backend.schemas import ReportResponse, GenerateRequest
 from backend.services.report_service import ReportGeneratorService
 from backend.storage import FileOnlyReportStore, GeneratedReportStore
 from backend.utils.api_helpers import (
+    build_report_response,
+    get_user_report,
+    list_user_reports,
     normalize_user,
     get_user_by_email,
     resolve_base_dir,
-    load_report_content,
 )
 
 router = APIRouter()
@@ -68,29 +69,9 @@ def list_reports(
         user = get_user_by_email(session, user_email)
         if not user:
             return []
-        reports = session.scalars(
-            select(Report)
-            .where(
-                Report.owner_user_id == user.id,
-                Report.is_deleted.is_(False),
-            )
-            .order_by(Report.created_at.desc())
-        ).all()
+        reports = list_user_reports(session, user.id)
         return [
-            ReportResponse(
-                id=report.id,
-                topic=report.saved_topic.title if report.saved_topic else "",
-                title=(
-                    (report.outline_snapshot or {}).get("report_title")
-                    if report.outline_snapshot
-                    else report.saved_topic.title if report.saved_topic else None
-                ),
-                status=report.status,
-                summary=report.summary,
-                content=load_report_content(report, base_dir) if include_content else None,
-                created_at=report.created_at.isoformat(),
-                updated_at=report.updated_at.isoformat(),
-            )
+            build_report_response(report, base_dir, include_content)
             for report in reports
         ]
 
@@ -112,23 +93,10 @@ def get_report(
         user = get_user_by_email(session, user_email)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")
-        report = session.get(Report, report_id)
-        if not report or report.owner_user_id != user.id or report.is_deleted:
+        report = get_user_report(session, report_id, user.id)
+        if not report:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")
-        return ReportResponse(
-            id=report.id,
-            topic=report.saved_topic.title if report.saved_topic else "",
-            title=(
-                (report.outline_snapshot or {}).get("report_title")
-                if report.outline_snapshot
-                else report.saved_topic.title if report.saved_topic else None
-            ),
-            status=report.status,
-            summary=report.summary,
-            content=load_report_content(report, base_dir),
-            created_at=report.created_at.isoformat(),
-            updated_at=report.updated_at.isoformat(),
-        )
+        return build_report_response(report, base_dir, include_content=True)
 
 
 @router.delete("/reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT)

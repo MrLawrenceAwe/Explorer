@@ -9,7 +9,7 @@ const repoEnvDir = path.resolve(__dirname, '..', '..');
 // Use the same env values for both backend and frontend defaults so only one .env is needed.
 export default defineConfig(({ mode }) => {
   // Load env (including non-VITE_ keys) so we can mirror backend defaults. Explicit env wins.
-  const env = { ...loadEnv(mode, repoEnvDir, ''), ...process.env };
+  const env = { ...loadEnv(mode, repoEnvDir, ''), ...(globalThis.process?.env ?? {}) };
   const defaultUserEmail = env.VITE_USER_EMAIL || env.EXPLORER_DEFAULT_USER_EMAIL || '';
   const defaultUsername = env.VITE_USERNAME || env.EXPLORER_DEFAULT_USERNAME || '';
 

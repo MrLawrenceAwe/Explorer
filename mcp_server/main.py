@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional
 
 from starlette.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 try:
@@ -18,11 +17,13 @@ from backend.api.dependencies import (
     get_session_factory,
     get_suggestion_service,
 )
-from backend.db import Report, session_scope
-from backend.schemas import GenerateRequest, OutlineRequest, ReportResponse, SuggestionsRequest
+from backend.db import session_scope
+from backend.schemas import GenerateRequest, OutlineRequest, SuggestionsRequest
 from backend.utils.api_helpers import (
+    build_report_response,
+    get_user_report,
+    list_user_reports,
     get_user_by_email,
-    load_report_content,
     normalize_user,
     resolve_base_dir,
 )
@@ -107,16 +108,9 @@ def reports_list(request: ReportListRequest) -> List[Dict[str, Any]]:
         user = get_user_by_email(session, user_email)
         if not user:
             return []
-        reports = session.scalars(
-            select(Report)
-            .where(
-                Report.owner_user_id == user.id,
-                Report.is_deleted.is_(False),
-            )
-            .order_by(Report.created_at.desc())
-        ).all()
+        reports = list_user_reports(session, user.id)
         return [
-            _build_report_response(report, base_dir, request.include_content)
+            build_report_response(report, base_dir, request.include_content).model_dump()
             for report in reports
         ]
 
@@ -131,30 +125,10 @@ def reports_get(request: ReportGetRequest) -> Dict[str, Any]:
         user = get_user_by_email(session, user_email)
         if not user:
             return {"error": "Report not found"}
-        report = session.get(Report, request.report_id)
-        if not report or report.owner_user_id != user.id or report.is_deleted:
+        report = get_user_report(session, request.report_id, user.id)
+        if not report:
             return {"error": "Report not found"}
-        return _build_report_response(report, base_dir, request.include_content)
-
-
-def _build_report_response(
-    report: Report, base_dir, include_content: bool
-) -> Dict[str, Any]:
-    response = ReportResponse(
-        id=report.id,
-        topic=report.saved_topic.title if report.saved_topic else "",
-        title=(
-            (report.outline_snapshot or {}).get("report_title")
-            if report.outline_snapshot
-            else report.saved_topic.title if report.saved_topic else None
-        ),
-        status=report.status,
-        summary=report.summary,
-        content=load_report_content(report, base_dir) if include_content else None,
-        created_at=report.created_at.isoformat(),
-        updated_at=report.updated_at.isoformat(),
-    )
-    return response.model_dump()
+        return build_report_response(report, base_dir, request.include_content).model_dump()
 
 
 app = mcp.sse_app()

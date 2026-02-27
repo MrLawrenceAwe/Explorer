@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { loadApiBase, loadUserProfile, persistUserProfile } from '../utils/storage';
 import { summarizeReport, cleanHeadingForTopic } from '../utils/reportTextUtils';
 

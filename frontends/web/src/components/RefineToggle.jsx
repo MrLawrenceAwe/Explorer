@@ -26,8 +26,6 @@ export function RefineToggle({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
 
-    const hasFilters = (avoidTopics && avoidTopics.trim()) || (includeTopics && includeTopics.trim());
-
     return (
         <div className="refine-toggle" ref={toggleRef}>
             <button
