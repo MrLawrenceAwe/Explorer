@@ -6,6 +6,7 @@ import { ReportView } from "./ReportView";
 import { ChatPane } from "./ChatPane";
 import { OutlineForm } from "./OutlineForm";
 import { SettingsModal } from "./SettingsModal";
+import { CoursesView } from "./CoursesView";
 
 export function AppLayout({ sidebarProps, mainProps, settingsProps }) {
     return (
@@ -19,6 +20,8 @@ export function AppLayout({ sidebarProps, mainProps, settingsProps }) {
 
 function MainContent({
     chatPaneClassName,
+    isCoursesPage,
+    coursesProps,
     shouldShowExplore,
     exploreProps,
     topicViewProps,
@@ -30,17 +33,21 @@ function MainContent({
     const { isOpen: isReportOpen, ...reportProps } = reportViewProps;
 
     return (
-        <main className={chatPaneClassName}>
-            {shouldShowExplore && <ExploreSuggestions {...exploreProps} />}
-            {isTopicOpen ? (
+        <main className={isCoursesPage ? `${chatPaneClassName} chat-pane--courses` : chatPaneClassName}>
+            {isCoursesPage ? (
+                <CoursesView {...coursesProps} />
+            ) : isTopicOpen ? (
                 <TopicView {...topicProps} />
             ) : isReportOpen ? (
                 <ReportView {...reportProps} />
             ) : (
-                <ChatPane
-                    {...chatPaneProps}
-                    outlineForm={<OutlineForm {...outlineFormProps} />}
-                />
+                <>
+                    {shouldShowExplore && <ExploreSuggestions {...exploreProps} />}
+                    <ChatPane
+                        {...chatPaneProps}
+                        outlineForm={<OutlineForm {...outlineFormProps} />}
+                    />
+                </>
             )}
         </main>
     );

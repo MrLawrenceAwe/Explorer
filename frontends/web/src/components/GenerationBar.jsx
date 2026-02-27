@@ -9,7 +9,7 @@ export function GenerationBar({
     return (
         <section className="sidebar-section sidebar-section--topic-bar">
             <div className="sidebar-section__header">
-                <h2>Topic View bar</h2>
+                <h2>Topic View Bar</h2>
             </div>
             <form className="topic-view-bar" onSubmit={handleTopicViewBarSubmit}>
                 <label htmlFor={TOPIC_VIEW_BAR_INPUT_ID} className="topic-view-bar__label">
