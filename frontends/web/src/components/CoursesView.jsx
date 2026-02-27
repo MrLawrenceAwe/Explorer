@@ -45,6 +45,7 @@ export function CoursesView({
     const [courseTitle, setCourseTitle] = useState('');
     const [modulesText, setModulesText] = useState('');
     const [formError, setFormError] = useState('');
+    const [isCourseFormOpen, setIsCourseFormOpen] = useState(false);
     const [moduleEditorCourseId, setModuleEditorCourseId] = useState(null);
     const [moduleDraft, setModuleDraft] = useState('');
     const [moduleError, setModuleError] = useState('');
@@ -53,6 +54,15 @@ export function CoursesView({
     const [topicError, setTopicError] = useState('');
 
     const hasCourses = courses.length > 0;
+
+    const closeCourseForm = ({ clearDraft = false } = {}) => {
+        setIsCourseFormOpen(false);
+        setFormError('');
+        if (clearDraft) {
+            setCourseTitle('');
+            setModulesText('');
+        }
+    };
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -78,6 +88,7 @@ export function CoursesView({
         setFormError('');
         setCourseTitle('');
         setModulesText('');
+        closeCourseForm();
     };
 
     const handleOpenModuleEditor = (event, courseId) => {
@@ -138,38 +149,60 @@ export function CoursesView({
                 <div>
                     <h1>Courses</h1>
                 </div>
+                {!isCourseFormOpen ? (
+                    <button
+                        type="button"
+                        className="courses-page__add-course"
+                        aria-expanded={isCourseFormOpen}
+                        aria-controls="course-create-form"
+                        onClick={() => setIsCourseFormOpen(true)}
+                    >
+                        + Add Course
+                    </button>
+                ) : null}
             </header>
 
-            <form className="courses-form" onSubmit={handleSubmit}>
-                <label className="courses-form__field">
-                    <span>Course Title</span>
-                    <input
-                        type="text"
-                        value={courseTitle}
-                        onChange={(event) => setCourseTitle(event.target.value)}
-                        placeholder="e.g. Full-Stack TypeScript"
-                        autoComplete="off"
-                    />
-                </label>
-                <label className="courses-form__field">
-                    <span>Modules and Topics (One Module per Line)</span>
-                    <textarea
-                        rows={4}
-                        value={modulesText}
-                        onChange={(event) => setModulesText(event.target.value)}
-                        placeholder={[
-                            'Foundations: Variables, Control Flow, Functions',
-                            'Backend > APIs, Authentication, Testing',
-                            'Deployment',
-                        ].join('\n')}
-                    />
-                </label>
-                <div className="courses-form__footer">
-                    <p className="courses-form__hint">Use `Module: Topic A, Topic B` or `Module &gt; Topic A, Topic B`.</p>
-                    <button type="submit">Create Course</button>
-                </div>
-                {formError ? <p className="courses-form__error">{formError}</p> : null}
-            </form>
+            {isCourseFormOpen ? (
+                <form id="course-create-form" className="courses-form" onSubmit={handleSubmit}>
+                    <label className="courses-form__field">
+                        <span>Course Title</span>
+                        <input
+                            type="text"
+                            value={courseTitle}
+                            onChange={(event) => setCourseTitle(event.target.value)}
+                            placeholder="e.g. Full-Stack TypeScript"
+                            autoComplete="off"
+                        />
+                    </label>
+                    <label className="courses-form__field">
+                        <span>Modules and Topics (One Module per Line)</span>
+                        <textarea
+                            rows={4}
+                            value={modulesText}
+                            onChange={(event) => setModulesText(event.target.value)}
+                            placeholder={[
+                                'Foundations: Variables, Control Flow, Functions',
+                                'Backend > APIs, Authentication, Testing',
+                                'Deployment',
+                            ].join('\n')}
+                        />
+                    </label>
+                    <div className="courses-form__footer">
+                        <p className="courses-form__hint">Use `Module: Topic A, Topic B` or `Module &gt; Topic A, Topic B`.</p>
+                        <div className="courses-form__actions">
+                            <button
+                                type="button"
+                                className="courses-form__cancel"
+                                onClick={() => closeCourseForm({ clearDraft: true })}
+                            >
+                                Cancel
+                            </button>
+                            <button type="submit">Create Course</button>
+                        </div>
+                    </div>
+                    {formError ? <p className="courses-form__error">{formError}</p> : null}
+                </form>
+            ) : null}
 
             {hasCourses ? (
                 <div className="courses-tree" aria-label="Course List">
@@ -334,7 +367,7 @@ export function CoursesView({
                     })}
                 </div>
             ) : (
-                <p className="courses-empty">No courses yet. Create one above to start tracking progress.</p>
+                <p className="courses-empty">No courses yet. Click Add Course to start tracking progress.</p>
             )}
         </section>
     );

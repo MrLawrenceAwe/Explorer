@@ -22,6 +22,20 @@
     flex-wrap: wrap;
 }
 
+.courses-page__add-course {
+    border: 1px solid var(--color-border-active);
+    background: var(--color-accent-primary);
+    color: #fff;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.courses-page__add-course:hover {
+    background: var(--color-accent-hover);
+}
+
 .courses-page__eyebrow {
     margin: 0;
     font-size: 0.75rem;
@@ -113,6 +127,12 @@
     font-size: 0.82rem;
 }
 
+.courses-form__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
 .courses-form__footer button {
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border-active);
@@ -125,6 +145,17 @@
 
 .courses-form__footer button:hover {
     background: var(--color-accent-hover);
+}
+
+.courses-form__cancel {
+    border-color: var(--color-border) !important;
+    background: var(--color-bg-base) !important;
+    color: var(--color-text-secondary) !important;
+}
+
+.courses-form__cancel:hover {
+    color: var(--color-text-primary) !important;
+    border-color: var(--color-border-active) !important;
 }
 
 .courses-form__error {
