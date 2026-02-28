@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+const VIEWPORT_MARGIN = 16;
 
 export function RefineToggle({
     avoidTopics,
@@ -10,6 +12,9 @@ export function RefineToggle({
     const toggleRef = useRef(null);
     const popoverRef = useRef(null);
     const [open, setOpen] = useState(false);
+    const [placement, setPlacement] = useState('top');
+    const [alignment, setAlignment] = useState('left');
+    const [popoverMaxHeight, setPopoverMaxHeight] = useState(null);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -26,11 +31,50 @@ export function RefineToggle({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
 
+    useLayoutEffect(() => {
+        if (!open || !toggleRef.current || !popoverRef.current) {
+            return undefined;
+        }
+
+        const updatePopoverLayout = () => {
+            const toggleRect = toggleRef.current.getBoundingClientRect();
+            const popoverRect = popoverRef.current.getBoundingClientRect();
+            const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+            const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+            const spaceAbove = toggleRect.top - VIEWPORT_MARGIN;
+            const spaceBelow = viewportHeight - toggleRect.bottom - VIEWPORT_MARGIN;
+            const nextPlacement =
+                spaceAbove >= popoverRect.height || spaceAbove >= spaceBelow ? 'top' : 'bottom';
+            const availableHeight =
+                nextPlacement === 'top' ? spaceAbove : spaceBelow;
+            const maxHeight = Math.floor(
+                Math.max(0, Math.min(availableHeight, viewportHeight - VIEWPORT_MARGIN * 2))
+            );
+
+            const canAlignLeft = toggleRect.left + popoverRect.width <= viewportWidth - VIEWPORT_MARGIN;
+            const canAlignRight = toggleRect.right - popoverRect.width >= VIEWPORT_MARGIN;
+
+            setPlacement(nextPlacement);
+            setAlignment(canAlignLeft || !canAlignRight ? 'left' : 'right');
+            setPopoverMaxHeight(maxHeight > 0 ? `${maxHeight}px` : null);
+        };
+
+        updatePopoverLayout();
+
+        window.addEventListener('resize', updatePopoverLayout);
+        window.addEventListener('scroll', updatePopoverLayout, true);
+
+        return () => {
+            window.removeEventListener('resize', updatePopoverLayout);
+            window.removeEventListener('scroll', updatePopoverLayout, true);
+        };
+    }, [open, avoidTopics, includeTopics]);
+
     return (
         <div className="refine-toggle" ref={toggleRef}>
             <button
                 type="button"
-                className="refine-toggle__button"
+                className={`refine-toggle__button${open ? ' refine-toggle__button--active' : ''}`}
                 aria-expanded={open}
                 onClick={() => setOpen((current) => !current)}
                 aria-label="Refine generation topics"
@@ -54,7 +98,11 @@ export function RefineToggle({
                 </span>
             </button>
             {open && (
-                <div className="refine-popover" ref={popoverRef}>
+                <div
+                    className={`refine-popover refine-popover--${placement} refine-popover--align-${alignment}`}
+                    ref={popoverRef}
+                    style={{ maxHeight: popoverMaxHeight ?? undefined }}
+                >
                     <div className="refine-field">
                         <label className="refine-field__label">Avoid</label>
                         <input
@@ -75,7 +123,6 @@ export function RefineToggle({
                             disabled={isRunning}
                         />
                     </div>
-                    <p className="refine-hint">Comma separated lists.</p>
                 </div>
             )}
         </div>
