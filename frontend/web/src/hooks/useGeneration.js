@@ -192,7 +192,7 @@ export function useGeneration({
                             manageRunningState: false,
                             onEvent: (event, meta) => {
                                 updateCoursesGenerationProgress(runId, {
-                                    completedTopics: event.status === 'complete' ? index + 1 : index,
+                                    completedTopics: index,
                                     currentIndex: index + 1,
                                     currentTopic: topicTitle,
                                     currentStatus: meta.statusText || 'Working…',
