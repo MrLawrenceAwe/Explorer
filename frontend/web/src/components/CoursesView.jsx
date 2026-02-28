@@ -93,7 +93,6 @@ export function CoursesView({
     const [topicError, setTopicError] = useState('');
 
     const hasCourses = courses.length > 0;
-    const totalModules = courses.reduce((count, course) => count + course.modules.length, 0);
     const progressValue = generationProgress
         ? generationProgress.state === 'running'
             ? Math.min(
@@ -153,16 +152,21 @@ export function CoursesView({
     const handleModuleSubmit = (event, courseId) => {
         event.preventDefault();
         event.stopPropagation();
-        const parsedModule = parseModules(moduleDraft)[0];
-        if (!parsedModule) {
-            setModuleError('Enter a module name.');
+        const parsedModules = parseModules(moduleDraft);
+        if (!parsedModules.length) {
+            setModuleError('Enter at least one module.');
             return;
         }
-        const created = onAddModuleToCourse(courseId, parsedModule);
-        if (!created) {
-            setModuleError('Module already exists in this course.');
+
+        const createdCount = parsedModules.reduce((count, module) => (
+            onAddModuleToCourse(courseId, module) ? count + 1 : count
+        ), 0);
+
+        if (createdCount === 0) {
+            setModuleError('All modules already exist in this course.');
             return;
         }
+
         setModuleEditorCourseId(null);
         setModuleDraft('');
         setModuleError('');
@@ -205,7 +209,6 @@ export function CoursesView({
                     </p>
                     <div className="courses-stats" aria-label="Course summary">
                         <span>{courses.length} {courses.length === 1 ? 'Course' : 'Courses'}</span>
-                        <span>{totalModules} {totalModules === 1 ? 'Module' : 'Modules'}</span>
                     </div>
                 </div>
                 {!isCourseFormOpen ? (
@@ -527,15 +530,15 @@ export function CoursesView({
                                 </ul>
                                 {moduleEditorCourseId === course.id ? (
                                     <form className="courses-inline-form" onSubmit={(event) => handleModuleSubmit(event, course.id)}>
-                                        <input
-                                            type="text"
+                                        <textarea
+                                            rows={3}
                                             value={moduleDraft}
                                             onChange={(event) => {
                                                 setModuleDraft(event.target.value);
                                                 setModuleError('');
                                             }}
-                                            placeholder="Module or Module: Topic A, Topic B"
-                                            aria-label={`Module name for ${course.title}`}
+                                            placeholder={'Module Name\nModule: Topic A, Topic B'}
+                                            aria-label={`Module names for ${course.title}`}
                                         />
                                         <button type="submit">Add</button>
                                         <button

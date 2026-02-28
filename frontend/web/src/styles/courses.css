@@ -586,7 +586,8 @@
     background: color-mix(in srgb, var(--color-bg-base) 20%, var(--color-bg-surface));
 }
 
-.courses-inline-form input {
+.courses-inline-form input,
+.courses-inline-form textarea {
     width: 100%;
     min-width: 0;
     border-radius: var(--radius-lg);
@@ -598,7 +599,13 @@
     line-height: 1.25;
 }
 
-.courses-inline-form input:focus {
+.courses-inline-form textarea {
+    resize: vertical;
+    min-height: 5.75rem;
+}
+
+.courses-inline-form input:focus,
+.courses-inline-form textarea:focus {
     border-color: var(--color-border-active);
     outline: none;
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent-subtle) 80%, transparent);
