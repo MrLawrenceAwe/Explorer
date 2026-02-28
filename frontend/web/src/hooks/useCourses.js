@@ -10,7 +10,8 @@ function makeId() {
 }
 
 function capitalizeTitle(value) {
-    return (value || '').replace(/(^|[\s/-])([a-z])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+    const normalized = (value || '').trim().toLowerCase();
+    return normalized.replace(/(^|[\s/()&:+-])([a-z])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
 }
 
 function normalizeTopic(topic) {

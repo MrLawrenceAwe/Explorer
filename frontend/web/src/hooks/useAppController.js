@@ -166,7 +166,6 @@ export function useAppController() {
             onDeleteCourse: courses.deleteCourse,
             onDeleteModule: courses.deleteModuleFromCourse,
             onDeleteTopic: courses.deleteTopicFromModule,
-            onToggleCourse: courses.toggleCourse,
             onToggleModule: courses.toggleModule,
             onToggleTopic: courses.toggleTopic,
             onAddTopicToModule: courses.addTopicToModule,

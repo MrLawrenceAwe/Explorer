@@ -70,7 +70,6 @@ export function CoursesView({
     onDeleteCourse,
     onDeleteModule,
     onDeleteTopic,
-    onToggleCourse,
     onToggleModule,
     onToggleTopic,
     onAddTopicToModule,
@@ -319,18 +318,7 @@ export function CoursesView({
                             <details key={course.id} className="courses-tree__course" open>
                                 <summary className="courses-tree__summary">
                                     <div className="courses-tree__summary-main">
-                                        <label
-                                            className="courses-tree__check"
-                                            onClick={(event) => event.stopPropagation()}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={course.completed}
-                                                onChange={(event) => onToggleCourse(course.id, event.target.checked)}
-                                                aria-label={`Mark ${course.title} complete`}
-                                            />
-                                            <span>{course.title}</span>
-                                        </label>
+                                        <span>{course.title}</span>
                                         <button
                                             type="button"
                                             className="courses-tree__report-action"
@@ -484,7 +472,7 @@ export function CoursesView({
                                                             ))}
                                                         </ul>
                                                     ) : (
-                                                        <p className="courses-tree__empty">No topics in this module.</p>
+                                                        <p className="courses-tree__empty">No Topics in This Module.</p>
                                                     )}
                                                     {topicEditorModuleId === module.id ? (
                                                         <form className="courses-inline-form" onSubmit={(event) => handleTopicSubmit(event, course.id, module.id)}>
