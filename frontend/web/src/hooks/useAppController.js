@@ -34,7 +34,7 @@ export function useAppController() {
     const chat = useChat(appState.apiBase, saved.rememberReport);
     useBeforeUnloadWarning(chat.isRunning);
 
-    const { generateReportFromTopic } = useGeneration({
+    const { generateReportFromTopic, generateReportsFromTopics, coursesGenerationProgress } = useGeneration({
         user: appState.user,
         modelsPayload: settings.modelsPayload,
         sectionCount: appState.sectionCount,
@@ -171,6 +171,12 @@ export function useAppController() {
             onToggleTopic: courses.toggleTopic,
             onAddTopicToModule: courses.addTopicToModule,
             onAddModuleToCourse: courses.addModuleToCourse,
+            onGenerateTopicReport: handleGenerateTopicFromCourses,
+            onGenerateModuleReports: handleGenerateModuleFromCourses,
+            onGenerateCourseReports: handleGenerateCourseFromCourses,
+            onCancelGeneration: chat.stopGeneration,
+            generationProgress: coursesGenerationProgress,
+            isRunning: chat.isRunning,
         },
         shouldShowExplore: mainViewState.shouldShowExplore,
         exploreProps,
@@ -247,6 +253,31 @@ export function useAppController() {
 
     function handleOpenExplorer() {
         setActivePage('explore');
+    }
+
+    async function handleGenerateTopicFromCourses(topicTitle) {
+        await generateReportsFromTopics([topicTitle], {
+            scopeType: 'topic',
+            scopeTitle: topicTitle,
+        });
+    }
+
+    async function handleGenerateModuleFromCourses(moduleTitle, topics) {
+        await generateReportsFromTopics(
+            topics.map((topic) => topic.title),
+            {
+                scopeType: 'module',
+                scopeTitle: moduleTitle,
+            }
+        );
+    }
+
+    async function handleGenerateCourseFromCourses(courseTitle, modules) {
+        const topicTitles = modules.flatMap((module) => module.topics.map((topic) => topic.title));
+        await generateReportsFromTopics(topicTitles, {
+            scopeType: 'course',
+            scopeTitle: courseTitle,
+        });
     }
 }
 

@@ -52,9 +52,10 @@ export function useChat(apiBase, rememberReport) {
     }, []);
 
     const runReportFlow = useCallback(
-        async (generateRequest, assistantId, topicLabel) => {
+        async (generateRequest, assistantId, topicLabel, options = {}) => {
             abortRef.current = new AbortController();
             const statusLog = [];
+            const { onEvent } = options;
             try {
                 const response = await fetch(`${apiBase}/generate_report`, {
                     method: "POST",
@@ -130,6 +131,14 @@ export function useChat(apiBase, rememberReport) {
                         }
                         if (event.outline) {
                             finalOutline = event.outline;
+                        }
+                        if (typeof onEvent === "function") {
+                            onEvent(event, {
+                                assistantId,
+                                topicLabel,
+                                statusText,
+                                statusLog: [...statusLog],
+                            });
                         }
                         if (event.status === "complete") {
                             finalOutline = event.outline_used || finalOutline || null;
