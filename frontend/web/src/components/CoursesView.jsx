@@ -93,6 +93,7 @@ export function CoursesView({
     const [topicError, setTopicError] = useState('');
 
     const hasCourses = courses.length > 0;
+    const totalModules = courses.reduce((count, course) => count + course.modules.length, 0);
     const progressValue = generationProgress
         ? generationProgress.state === 'running'
             ? Math.min(
@@ -196,8 +197,16 @@ export function CoursesView({
     return (
         <section className="courses-page" aria-label="Courses">
             <header className="courses-page__header">
-                <div>
+                <div className="courses-page__headline">
+                    <p className="courses-page__eyebrow">Learning map</p>
                     <h1>Courses</h1>
+                    <p className="courses-page__description">
+                        Organize subjects into courses, modules, and topics with a cleaner structure for tracking progress and generating reports.
+                    </p>
+                    <div className="courses-stats" aria-label="Course summary">
+                        <span>{courses.length} {courses.length === 1 ? 'Course' : 'Courses'}</span>
+                        <span>{totalModules} {totalModules === 1 ? 'Module' : 'Modules'}</span>
+                    </div>
                 </div>
                 {!isCourseFormOpen ? (
                     <button
@@ -318,7 +327,12 @@ export function CoursesView({
                             <details key={course.id} className="courses-tree__course" open>
                                 <summary className="courses-tree__summary">
                                     <div className="courses-tree__summary-main">
-                                        <span>{course.title}</span>
+                                        <div className="courses-tree__title-block">
+                                            <span className="courses-tree__title">{course.title}</span>
+                                            <span className="courses-tree__meta">
+                                                {course.modules.length} {course.modules.length === 1 ? 'module' : 'modules'}
+                                            </span>
+                                        </div>
                                         <button
                                             type="button"
                                             className="courses-tree__report-action"
@@ -382,7 +396,12 @@ export function CoursesView({
                                                                     onChange={(event) => onToggleModule(course.id, module.id, event.target.checked)}
                                                                     aria-label={`Mark module ${module.title} complete`}
                                                                 />
-                                                                <span>{module.title}</span>
+                                                                <div className="courses-tree__title-block">
+                                                                    <span className="courses-tree__title">{module.title}</span>
+                                                                    <span className="courses-tree__meta">
+                                                                        {module.topics.length} {module.topics.length === 1 ? 'topic' : 'topics'}
+                                                                    </span>
+                                                                </div>
                                                             </label>
                                                             <button
                                                                 type="button"
@@ -446,7 +465,7 @@ export function CoursesView({
                                                                                     }
                                                                                     aria-label={`Mark topic ${topic.title} complete`}
                                                                                 />
-                                                                                <span>{topic.title}</span>
+                                                                                <span className="courses-tree__title">{topic.title}</span>
                                                                             </label>
                                                                             <button
                                                                                 type="button"
@@ -472,7 +491,7 @@ export function CoursesView({
                                                             ))}
                                                         </ul>
                                                     ) : (
-                                                        <p className="courses-tree__empty">No Topics in This Module.</p>
+                                                        <p className="courses-tree__empty">No Topics.</p>
                                                     )}
                                                     {topicEditorModuleId === module.id ? (
                                                         <form className="courses-inline-form" onSubmit={(event) => handleTopicSubmit(event, course.id, module.id)}>
