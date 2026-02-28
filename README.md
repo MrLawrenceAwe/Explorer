@@ -56,6 +56,21 @@ pip install -r requirements.txt
 uvicorn backend.api.main:app --reload --port 8000
 ```
 
+For the normal local web-app workflow, use the combined dev script instead:
+
+```bash
+./scripts/dev.sh
+```
+
+It starts the backend on `http://localhost:8000` and the frontend on `http://localhost:5173`, and it automatically loads the repo-level `.env` if present before falling back to an interactive `OPENAI_API_KEY` prompt.
+
+If you want separate terminals, use:
+
+```bash
+./scripts/dev-backend.sh
+./scripts/dev-frontend.sh
+```
+
 ---
 
 ## ChatGPT App (MCP)

@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-/**
- * CollectionsList component for displaying and managing topic collections in the sidebar.
- */
 export function CollectionsList({
     collections,
     savedTopics,
@@ -27,14 +24,12 @@ export function CollectionsList({
     const createInputRef = useRef(null);
     const editInputRef = useRef(null);
 
-    // Focus input when creating
     useEffect(() => {
         if (isCreating && createInputRef.current) {
             createInputRef.current.focus();
         }
     }, [isCreating]);
 
-    // Focus input when editing
     useEffect(() => {
         if (editingCollectionId && editInputRef.current) {
             editInputRef.current.focus();
@@ -42,7 +37,6 @@ export function CollectionsList({
         }
     }, [editingCollectionId]);
 
-    // Group topics by collection
     const topicsByCollection = {};
     const uncategorizedTopics = [];
 
@@ -155,8 +149,6 @@ export function CollectionsList({
                     </svg>
                 </button>
             </div>
-
-            {/* Create new collection form */}
             {isCreating && (
                 <form className="collections__create-form" onSubmit={handleCreateSubmit}>
                     <input
@@ -187,8 +179,6 @@ export function CollectionsList({
                     </div>
                 </form>
             )}
-
-            {/* Collections list */}
             <ul className="collections__list">
                 {collections.map((collection) => {
                     const isExpanded = expandedCollections.has(collection.id);

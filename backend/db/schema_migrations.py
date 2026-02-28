@@ -11,7 +11,7 @@ from .models import Report, SavedTopic, TopicCollection, User
 
 try:
     import fcntl
-except ImportError:  # pragma: no cover - Windows fallback
+except ImportError:
     fcntl = None
 
 _SUPPORTED_DIALECTS = {"sqlite"}

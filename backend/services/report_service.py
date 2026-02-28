@@ -166,7 +166,7 @@ class _ReportStreamRunner:
                 outline = await self.service.outline_service.generate_outline(
                     outline_request
                 )
-            except OutlineParsingError as exception:  # pragma: no cover - defensive
+            except OutlineParsingError as exception:
                 error_status = {
                     "status": "error",
                     "detail": f"Failed to parse outline JSON: {exception}",

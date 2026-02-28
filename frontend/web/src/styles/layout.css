@@ -1,8 +1,3 @@
-/* Layout Styles */
-
-/* Layout Styles */
-
-/* Background Effects */
 body::before {
     content: '';
     position: fixed;
@@ -23,18 +18,15 @@ body::before {
     color: var(--color-text-primary);
 }
 
-/* Main Content Area */
 main {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    /* Prevent flex child overflow */
     position: relative;
     background-color: var(--color-bg-base);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .page {
         flex-direction: column;

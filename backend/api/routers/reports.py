@@ -39,7 +39,7 @@ def generate_report(
                 yield json.dumps(event) + "\n"
         except asyncio.CancelledError:
             raise
-        except Exception as exception:  # pragma: no cover - defensive
+        except Exception as exception:
             yield json.dumps({"status": "error", "detail": str(exception)}) + "\n"
 
     return StreamingResponse(

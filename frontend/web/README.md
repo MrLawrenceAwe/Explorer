@@ -4,6 +4,27 @@ A modern React application for the Explorer Copilot, built with Vite.
 
 ## Running Locally
 
+Preferred:
+
+```bash
+# From the project root
+./scripts/dev.sh
+```
+
+This starts both the backend and frontend and loads the repo-level `.env` automatically if present.
+
+If you prefer separate terminals, start them independently:
+
+```bash
+# Terminal 1
+./scripts/dev-backend.sh
+
+# Terminal 2
+./scripts/dev-frontend.sh
+```
+
+Manual setup:
+
 1. **Start the Backend**:
    Ensure the FastAPI service is running (usually on port 8000):
    ```bash

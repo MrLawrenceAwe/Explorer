@@ -102,7 +102,6 @@
 
 .message--user {
     align-items: flex-start;
-    /* Align left like a document */
 }
 
 .message__header {
@@ -129,19 +128,16 @@
     background: var(--color-bg-surface);
 }
 
-/* Assistant Block */
 .message:not(.message--user) .message__bubble {
     background: var(--color-bg-surface);
     border-color: var(--color-border);
     color: var(--color-text-primary);
 }
 
-/* User Block */
 .message--user .message__bubble {
     background: var(--color-bg-highlight);
     border-color: var(--color-border);
     color: var(--color-text-primary);
-    /* No accent background */
     box-shadow: none;
 }
 
@@ -161,7 +157,6 @@
     margin: 0;
 }
 
-/* Outline in Message */
 .message__outline {
     margin-top: var(--space-4);
     padding: var(--space-4);
@@ -202,7 +197,6 @@
     margin-top: var(--space-2);
 }
 
-/* Download Buttons */
 .message__download {
     margin-top: var(--space-3);
     display: flex;

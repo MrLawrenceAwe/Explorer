@@ -90,7 +90,7 @@ class OutlineService:
     def _parse_outline(text: str) -> Outline:
         try:
             return parse_outline_json(text)
-        except Exception as exception:  # pragma: no cover - defensive
+        except Exception as exception:
             raise OutlineParsingError(str(exception), text) from exception
 
 

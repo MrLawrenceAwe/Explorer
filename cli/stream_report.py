@@ -14,7 +14,7 @@ GENERATED_REPORTS_DIR = CLI_DIR / 'generated_reports'
 
 try:
     import httpx
-except ImportError as exception:  # pragma: no cover - dependency check
+except ImportError as exception:
     raise SystemExit("httpx is required to run this script (pip install httpx)") from exception
 
 from pydantic import ValidationError
@@ -351,5 +351,5 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except KeyboardInterrupt:  # pragma: no cover - CLI ergonomics
+    except KeyboardInterrupt:
         sys.exit(130)

@@ -1,6 +1,5 @@
 import { useOutlineForm } from './useOutlineForm';
 
-/** Outline form wrapper that wires generation callbacks. */
 export function useOutlineController({
     user,
     isRunning,

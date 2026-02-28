@@ -24,7 +24,7 @@ async function parseErrorDetail(response) {
             return payload.detail;
         }
     } catch {
-        // ignore JSON parse failures
+        return null;
     }
     return null;
 }

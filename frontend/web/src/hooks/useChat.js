@@ -88,7 +88,7 @@ export function useChat(apiBase, rememberReport) {
                             }
                         }
                     } catch {
-                        /* ignore parsing failures */
+                        detail = "";
                     }
                     const reason = detail ? `: ${detail}` : ".";
                     throw new Error(`Report request failed (${response.status})${reason}`);

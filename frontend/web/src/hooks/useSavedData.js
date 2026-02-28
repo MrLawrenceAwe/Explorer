@@ -12,7 +12,6 @@ import {
 } from '../utils/apiClient';
 import { summarizeReport } from '../utils/reportTextUtils';
 
-/** Hook for managing saved topics and reports. */
 export function useSavedData({ apiBase, user }) {
     const [savedTopics, setSavedTopics] = useState([]);
     const [savedReports, setSavedReports] = useState([]);

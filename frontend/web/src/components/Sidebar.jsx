@@ -23,7 +23,6 @@ export function Sidebar({
     savedError,
     generatingReport,
     onGeneratingReportSelect,
-    // Collections props
     collections = [],
     expandedCollections = new Set(),
     isCreatingCollection = false,

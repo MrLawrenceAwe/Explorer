@@ -7,7 +7,6 @@ import {
     updateSavedTopic,
 } from '../utils/apiClient';
 
-/** Hook for managing topic collections (folders). */
 export function useCollections({
     apiBase,
     user,
@@ -101,7 +100,6 @@ export function useCollections({
             setCollections((prev) => [...prev, collection]);
             setNewCollectionName('');
             setIsCreating(false);
-            // Auto-expand the new collection
             setExpandedCollections((prev) => new Set([...prev, collection.id]));
             return collection;
         } catch (error) {

@@ -411,7 +411,6 @@
     line-height: 1.5;
 }
 
-/* Quick Toggle */
 .model-quick-toggle {
     position: relative;
 }
@@ -542,7 +541,6 @@
     font-weight: 600;
 }
 
-/* Refine Toggle */
 .refine-toggle {
     position: relative;
     display: inline-block;

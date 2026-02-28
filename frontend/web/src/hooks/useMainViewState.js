@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 
-/** Derived UI state and layout helpers for the main app surfaces. */
 export function useMainViewState({
     isRunning,
     isHomeView,
@@ -61,7 +60,6 @@ export function useMainViewState({
         return classes.join(" ");
     }, [isHomeView, hasMessages, isTopicViewOpen, isReportViewOpen]);
 
-    // Auto-show home when empty
     useEffect(() => {
         if (isRunning || isTopicViewOpen || isReportViewOpen || isHomeView) return;
         if (messages.length === 0) {

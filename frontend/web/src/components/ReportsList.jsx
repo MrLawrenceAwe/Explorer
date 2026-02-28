@@ -29,10 +29,6 @@ export function ReportsList({ savedReports, onReportSelect, handleReportRemove, 
                     <ul className="sidebar-list" id="sidebar-saved-reports">
                         {generatingReport && (
                             <li key="generating" className="sidebar-entry-wrapper">
-                                {/*
-                                  Use a robust title fallback so the button never renders empty
-                                  when topic strings are missing.
-                                */}
                                 <button
                                     type="button"
                                     className={`sidebar-entry sidebar-entry--report${generatingReport.isGenerating ? ' sidebar-entry--generating' : ''}`}
@@ -49,9 +45,6 @@ export function ReportsList({ savedReports, onReportSelect, handleReportRemove, 
                         )}
                         {savedReports.map((report) => (
                             <li key={report.id} className="sidebar-entry-wrapper">
-                                {/*
-                                  Fallback to title/preview so empty topics still render text.
-                                */}
                                 <button
                                     type="button"
                                     className="sidebar-entry sidebar-entry--report"

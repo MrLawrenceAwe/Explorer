@@ -2,10 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { loadApiBase, loadUserProfile, persistUserProfile } from '../utils/storage';
 import { summarizeReport, cleanHeadingForTopic } from '../utils/reportTextUtils';
 
-/**
- * Hook for managing core application state.
- * Consolidates navigation, view state, and user profile management.
- */
 export function useAppState() {
     const [apiBase] = useState(loadApiBase);
     const [user, setUser] = useState(loadUserProfile);
@@ -18,12 +14,10 @@ export function useAppState() {
     const [chatIncludeTopics, setChatIncludeTopics] = useState('');
     const [isHomeView, setIsHomeView] = useState(false);
 
-    // Persist user profile changes
     useEffect(() => {
         persistUserProfile(user);
     }, [user]);
 
-    // Handle opening a report
     const handleReportOpen = useCallback((reportPayload) => {
         if (!reportPayload) return;
         const content = reportPayload.content || reportPayload.reportText || '';
@@ -45,12 +39,10 @@ export function useAppState() {
         setIsHomeView(false);
     }, []);
 
-    // Handle closing a report
     const handleReportClose = useCallback(() => {
         setActiveReport(null);
     }, []);
 
-    // Handle opening a topic (returns normalized topic string)
     const normalizeTopicForOpen = useCallback((topic, options = {}) => {
         const normalized = options.normalizeHeading
             ? cleanHeadingForTopic(topic)
@@ -62,7 +54,6 @@ export function useAppState() {
         return safeTopic;
     }, []);
 
-    // Reset to home/explore view
     const resetToHome = useCallback((clearMessages) => {
         setActiveReport(null);
         if (clearMessages) {
@@ -72,7 +63,6 @@ export function useAppState() {
         setMode('topic');
     }, []);
 
-    // Compute UI states
     const isReportViewOpen = Boolean(activeReport);
 
     return {

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 try:
     from mcp.server.fastmcp import FastMCP
-except ImportError:  # pragma: no cover - fallback for older SDK layouts
+except ImportError:
     from mcp.server import FastMCP  # type: ignore
 
 from backend.api.dependencies import (

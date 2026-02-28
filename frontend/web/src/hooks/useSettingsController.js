@@ -2,7 +2,6 @@ import { useSettings } from './useSettings';
 import { usePersistence } from './usePersistence';
 import { MODEL_PRESET_LABELS } from '../utils/modelPresets';
 
-/** Settings + model selection helpers. Keeps App wiring thin. */
 export function useSettingsController({ user, setUser }) {
     const settings = useSettings();
 

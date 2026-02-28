@@ -86,7 +86,6 @@
     align-items: center;
     justify-content: center;
     height: 40px;
-    /* Fixed height for alignment */
 }
 
 .composer button:not(.button-generate):not(.refine-toggle__button):hover {
@@ -182,7 +181,6 @@
     border-color: var(--color-text-muted);
 }
 
-/* Mode Toggle */
 .mode-toggle {
     display: inline-flex;
     padding: 4px;
@@ -307,7 +305,6 @@
     gap: var(--space-3);
 }
 
-/* Override composer button styles for refine toggle */
 .composer .refine-toggle__button {
     background: transparent;
     border: none;
