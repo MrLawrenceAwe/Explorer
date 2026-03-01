@@ -604,6 +604,10 @@
     min-height: 5.75rem;
 }
 
+.courses-inline-form textarea:first-child {
+    grid-column: 1 / -1;
+}
+
 .courses-inline-form input:focus,
 .courses-inline-form textarea:focus {
     border-color: var(--color-border-active);
@@ -635,6 +639,13 @@
     border-color: var(--color-border) !important;
     background: transparent !important;
     color: var(--color-text-secondary) !important;
+}
+
+.courses-inline-form__hint {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--color-text-tertiary);
+    font-size: 0.78rem;
 }
 
 .courses-inline-form__error {

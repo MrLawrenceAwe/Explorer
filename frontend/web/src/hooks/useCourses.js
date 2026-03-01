@@ -34,6 +34,35 @@ function uniqueTopics(topics) {
     });
 }
 
+function parseTopicEntries(topics) {
+    if (typeof topics !== 'string') {
+        return [];
+    }
+
+    const value = topics || '';
+    const parts = /\r?\n/.test(value)
+        ? value.split(/\r?\n/)
+        : value.split(',');
+
+    return parts
+        .map((topic) => topic.trim())
+        .filter(Boolean);
+}
+
+function normalizeTopicTitles(topics) {
+    if (Array.isArray(topics)) {
+        return topics
+            .map((topic) => normalizeTopic(typeof topic === 'string' ? { title: topic } : topic))
+            .filter(Boolean);
+    }
+
+    if (typeof topics === 'string') {
+        return normalizeTopicTitles(parseTopicEntries(topics));
+    }
+
+    return [];
+}
+
 function uniqueModules(modules) {
     const seen = new Set();
     return modules.filter((module) => {
@@ -213,9 +242,12 @@ export function useCourses() {
         );
     }, []);
 
-    const addTopicToModule = useCallback((courseId, moduleId, topicTitle) => {
-        const safeTitle = capitalizeTitle((topicTitle || '').trim());
-        if (!safeTitle) return false;
+    const addTopicToModule = useCallback((courseId, moduleId, topics) => {
+        const nextTopicEntries = normalizeTopicTitles(topics).map((topic) => ({
+            ...topic,
+            completed: false,
+        }));
+        if (!nextTopicEntries.length) return false;
 
         let changed = false;
 
@@ -230,11 +262,7 @@ export function useCourses() {
 
                         const nextTopics = uniqueTopics([
                             ...module.topics,
-                            {
-                                id: makeId(),
-                                title: safeTitle,
-                                completed: false,
-                            },
+                            ...nextTopicEntries,
                         ]);
 
                         if (nextTopics.length === module.topics.length) {

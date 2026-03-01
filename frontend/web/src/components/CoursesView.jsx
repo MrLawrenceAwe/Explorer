@@ -32,6 +32,17 @@ function parseModules(rawModules) {
         .filter((module) => module.title);
 }
 
+function parseTopicList(rawTopics) {
+    const value = rawTopics || '';
+    const parts = /\r?\n/.test(value)
+        ? value.split(/\r?\n/)
+        : value.split(',');
+
+    return parts
+        .map((topic) => topic.trim())
+        .filter(Boolean);
+}
+
 function PlusIcon() {
     return (
         <svg className="courses-tree__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -183,14 +194,14 @@ export function CoursesView({
     const handleTopicSubmit = (event, courseId, moduleId) => {
         event.preventDefault();
         event.stopPropagation();
-        const safeTitle = topicDraft.trim();
-        if (!safeTitle) {
-            setTopicError('Enter a topic name.');
+        const topicTitles = parseTopicList(topicDraft);
+        if (!topicTitles.length) {
+            setTopicError('Enter at least one topic.');
             return;
         }
-        const created = onAddTopicToModule(courseId, moduleId, safeTitle);
+        const created = onAddTopicToModule(courseId, moduleId, topicTitles);
         if (!created) {
-            setTopicError('Topic already exists in this module.');
+            setTopicError('All topics already exist in this module.');
             return;
         }
         setTopicEditorModuleId(null);
@@ -205,7 +216,7 @@ export function CoursesView({
                     <p className="courses-page__eyebrow">Learning map</p>
                     <h1>Courses</h1>
                     <p className="courses-page__description">
-                        Organize subjects into courses, modules, and topics with a cleaner structure for tracking progress and generating reports.
+                        Organize subjects into courses, modules, and topics to track progress and create reports.
                     </p>
                     <div className="courses-stats" aria-label="Course summary">
                         <span>{courses.length} {courses.length === 1 ? 'Course' : 'Courses'}</span>
@@ -498,15 +509,15 @@ export function CoursesView({
                                                     )}
                                                     {topicEditorModuleId === module.id ? (
                                                         <form className="courses-inline-form" onSubmit={(event) => handleTopicSubmit(event, course.id, module.id)}>
-                                                            <input
-                                                                type="text"
+                                                            <textarea
+                                                                rows={3}
                                                                 value={topicDraft}
                                                                 onChange={(event) => {
                                                                     setTopicDraft(event.target.value);
                                                                     setTopicError('');
                                                                 }}
-                                                                placeholder="Topic Name"
-                                                                aria-label={`Topic name for ${module.title}`}
+                                                                placeholder={'Topic A\nTopic B\nTopic C'}
+                                                                aria-label={`Topic names for ${module.title}`}
                                                             />
                                                             <button type="submit">Add</button>
                                                             <button
@@ -520,6 +531,9 @@ export function CoursesView({
                                                             >
                                                                 Cancel
                                                             </button>
+                                                            <p className="courses-inline-form__hint">
+                                                                Add one topic per line. Commas only split topics when you use a single line.
+                                                            </p>
                                                             {topicError ? <p className="courses-inline-form__error">{topicError}</p> : null}
                                                         </form>
                                                     ) : null}
