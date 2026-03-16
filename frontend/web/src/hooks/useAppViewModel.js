@@ -1,24 +1,24 @@
 import { useState } from 'react';
 import { useAppState } from './useAppState';
-import { useSettingsController } from './useSettingsController';
+import { useSettingsViewModel } from './useSettingsViewModel';
 import { useSavedData } from './useSavedData';
 import { useCollections } from './useCollections';
 import { useChat } from './useChat';
 import { useBeforeUnloadWarning } from './useBeforeUnloadWarning';
 import { useGeneration } from './useGeneration';
 import { useTopicView } from './useTopicView';
-import { useExplore } from './useExplore';
+import { useExploreSuggestions } from './useExploreSuggestions';
 import { useOutlineController } from './useOutlineController';
-import { useChatPaneController } from './useChatPaneController';
-import { useMainViewState } from './useMainViewState';
+import { useChatPaneProps } from './useChatPaneProps';
+import { useMainViewModel } from './useMainViewModel';
 import { useCourses } from './useCourses';
 
-export function useAppController() {
+export function useAppViewModel() {
     const appState = useAppState();
     const [activePage, setActivePage] = useState('explore');
     const courses = useCourses();
 
-    const settings = useSettingsController({ user: appState.user, setUser: appState.setUser });
+    const settings = useSettingsViewModel({ user: appState.user, setUser: appState.setUser });
     const savedData = useSavedData({ apiBase: appState.apiBase, user: appState.user });
     const collections = useCollections({
         apiBase: appState.apiBase,
@@ -31,14 +31,14 @@ export function useAppController() {
         collections,
     };
 
-    const chat = useChat(appState.apiBase, saved.rememberReport);
+    const chat = useChat(appState.apiBase, saved.syncSavedReportsAfterGeneration);
     useBeforeUnloadWarning(chat.isRunning);
 
     const { generateReportFromTopic, generateReportsFromTopics, coursesGenerationProgress } = useGeneration({
         user: appState.user,
         modelsPayload: settings.modelsPayload,
         sectionCount: appState.sectionCount,
-        rememberTopicTitle: saved.rememberTopicTitle,
+        saveTopic: saved.saveTopic,
         appendMessage: chat.appendMessage,
         runReportFlow: chat.runReportFlow,
         setActiveReport: appState.setActiveReport,
@@ -49,17 +49,17 @@ export function useAppController() {
     const topicView = useTopicView({
         apiBase: appState.apiBase,
         suggestionModel: settings.suggestionModel,
-        rememberTopics: saved.rememberTopics,
+        saveTopics: saved.saveTopics,
         isRunning: chat.isRunning,
         generateReportFromTopic,
     });
 
-    const explore = useExplore({
+    const exploreSuggestions = useExploreSuggestions({
         apiBase: appState.apiBase,
         savedTopics: saved.savedTopics,
         savedReports: saved.savedReports,
         suggestionModel: settings.suggestionModel,
-        rememberTopics: saved.rememberTopics,
+        saveTopics: saved.saveTopics,
     });
 
     const outline = useOutlineController({
@@ -74,7 +74,7 @@ export function useAppController() {
         runReportFlow: chat.runReportFlow,
     });
 
-    const mainViewState = useMainViewState({
+    const mainViewState = useMainViewModel({
         isRunning: chat.isRunning,
         isHomeView: appState.isHomeView,
         isReportViewOpen: appState.isReportViewOpen,
@@ -86,7 +86,7 @@ export function useAppController() {
         setMode: appState.setMode,
     });
 
-    const { chatPaneProps } = useChatPaneController({
+    const { chatPaneProps } = useChatPaneProps({
         composerValue: appState.composerValue,
         setComposerValue: appState.setComposerValue,
         chatAvoidTopics: appState.chatAvoidTopics,
@@ -146,15 +146,15 @@ export function useAppController() {
         onOpenTopic: handleOpenTopic,
     };
     const exploreProps = {
-        exploreSuggestions: explore.exploreSuggestions,
-        exploreLoading: explore.exploreLoading,
-        selectedSuggestions: explore.selectedSuggestions,
-        exploreSelectMode: explore.exploreSelectMode,
-        exploreSelectToggleRef: explore.exploreSelectToggleRef,
-        exploreSuggestionsRef: explore.exploreSuggestionsRef,
-        handleRefreshExplore: explore.handleRefreshExplore,
-        handleToggleExploreSuggestion: explore.handleToggleExploreSuggestion,
-        toggleExploreSelectMode: explore.toggleExploreSelectMode,
+        suggestions: exploreSuggestions.suggestions,
+        isLoading: exploreSuggestions.isLoading,
+        selectedSuggestions: exploreSuggestions.selectedSuggestions,
+        isSelectMode: exploreSuggestions.isSelectMode,
+        selectToggleRef: exploreSuggestions.selectToggleRef,
+        suggestionsRef: exploreSuggestions.suggestionsRef,
+        onRefresh: exploreSuggestions.refreshSuggestions,
+        onToggleSuggestion: exploreSuggestions.toggleSuggestionSelection,
+        onToggleSelectMode: exploreSuggestions.toggleSelectMode,
         handleOpenTopic,
     };
     const mainProps = {
@@ -192,7 +192,7 @@ export function useAppController() {
     }
 
     async function handleForgetReport(reportId) {
-        const reportToDelete = await saved.forgetReport(reportId);
+        const reportToDelete = await saved.deleteSavedReportEntry(reportId);
         if (!reportToDelete || chat.isRunning) return;
 
         const assistantMsg = findLatestAssistantReportMessage(chat.messages);
@@ -298,7 +298,7 @@ function buildSidebarProps({
     handleOpenSettings,
     generatingReport,
 }) {
-    const { savedTopics, savedReports, forgetTopic } = saved;
+    const { savedTopics, savedReports, deleteSavedTopicEntry } = saved;
     const isSyncing = saved.isSyncing || collections.isLoading;
 
     return {
@@ -307,7 +307,7 @@ function buildSidebarProps({
         generatingReport,
         onGeneratingReportSelect: handleGeneratingReportSelect,
         handleTopicRecall,
-        handleTopicRemove: forgetTopic,
+        handleTopicRemove: deleteSavedTopicEntry,
         handleReportRemove: handleForgetReport,
         quickTopicInputValue,
         setQuickTopicInputValue,
@@ -355,11 +355,11 @@ function buildTopicViewProps({
         setDraft: topicViewController.setDraftTopic,
         isSaved: mainViewState.isTopicSaved,
         suggestions: topicViewController.topicSuggestions,
-        suggestionsLoading: topicViewController.topicSuggestionsLoading,
+        suggestionsLoading: topicViewController.suggestionsLoading,
         selectedSuggestions: topicViewController.selectedSuggestions,
-        selectMode: topicViewController.topicSelectMode,
-        selectToggleRef: topicViewController.topicSelectToggleRef,
-        suggestionsRef: topicViewController.topicSuggestionsRef,
+        selectMode: topicViewController.selectMode,
+        selectToggleRef: topicViewController.selectToggleRef,
+        suggestionsRef: topicViewController.suggestionsRef,
         isRunning,
         ...modelSelectionProps,
         handlers: {
@@ -381,7 +381,7 @@ function buildTopicViewProps({
             sectionCount,
             setSectionCount,
         },
-        editorRef: topicViewController.topicViewEditorRef,
+        editorRef: topicViewController.titleEditorRef,
         avoidTopics: topicViewController.avoidTopics,
         setAvoidTopics: topicViewController.setAvoidTopics,
         includeTopics: topicViewController.includeTopics,

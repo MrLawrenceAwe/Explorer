@@ -5,7 +5,7 @@ import {
     persistSuggestionModel,
 } from '../utils/modelPresets';
 
-export function usePersistence({
+export function usePersistModelSettings({
     modelPresets,
     defaultPreset,
     suggestionModel,

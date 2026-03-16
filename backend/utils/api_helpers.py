@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.db import Report
 from backend.schemas import ReportResponse
-from backend.storage import GeneratedReportStore
+from backend.storage import DatabaseReportStore, FilesystemReportStore
 from backend.utils.slug_utils import slugify
 from backend.utils.user_utils import get_or_create_user, get_user_by_email
 
@@ -29,7 +29,7 @@ def normalize_user(user_email: Optional[str], username: Optional[str]) -> Tuple[
     normalized_username = (username or "").strip() or None
     return email, normalized_username
 
-def resolve_base_dir(report_store: Optional[GeneratedReportStore]) -> Path:
+def resolve_base_dir(report_store: Optional[DatabaseReportStore | FilesystemReportStore]) -> Path:
     if report_store:
         return report_store.base_dir
     configured = os.environ.get("EXPLORER_REPORT_STORAGE_DIR", "data/reports")

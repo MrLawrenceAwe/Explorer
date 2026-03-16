@@ -24,7 +24,7 @@ from backend.schemas import (
 )
 from backend.services.outline_service import OutlineService
 from backend.services.report_service import ReportGeneratorService
-from backend.storage.report_store import StoredReportHandle
+from backend.storage.database_report_store import StoredReportHandle
 
 
 class StubTextClient:
@@ -55,13 +55,13 @@ class NoopReportStore:
             owner_user_id=uuid.uuid4(),
             report_dir=base_dir,
             outline_path=base_dir / "noop-outline.json",
-            transcript_path=base_dir / "noop-report.md",
+            report_path=base_dir / "noop-report.md",
         )
 
     def prepare_report(self, request, outline):
         return self._handle
 
-    def finalize_report(self, handle, transcript, written_sections, summary=None):
+    def finalize_report(self, handle, report_markdown, written_sections, summary=None):
         return None
 
     def discard_report(self, handle):

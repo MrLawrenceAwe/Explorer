@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 
-export function useChat(apiBase, rememberReport) {
+export function useChat(apiBase, syncSavedReportsAfterGeneration) {
     const [messages, setMessages] = useState([]);
     const [isRunning, setIsRunning] = useState(false);
     const abortRef = useRef(null);
@@ -161,7 +161,7 @@ export function useChat(apiBase, rememberReport) {
                     outline: finalOutline,
                 }));
                 if (finalText && topicLabel) {
-                    rememberReport(topicLabel, finalText, resolvedTitle, finalOutline);
+                    syncSavedReportsAfterGeneration(topicLabel, finalText, resolvedTitle, finalOutline);
                 }
                 return true;
             } catch (error) {
@@ -182,7 +182,7 @@ export function useChat(apiBase, rememberReport) {
                 abortRef.current = null;
             }
         },
-        [apiBase, rememberReport, updateMessage, formatStatus]
+        [apiBase, syncSavedReportsAfterGeneration, updateMessage, formatStatus]
     );
 
     const stopGeneration = useCallback(() => {

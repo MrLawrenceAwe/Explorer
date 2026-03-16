@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { parseTopicsList } from '../utils/reportTextUtils';
 
-export function useChatPaneController({
+export function useChatPaneProps({
     composerValue,
     setComposerValue,
     chatAvoidTopics,

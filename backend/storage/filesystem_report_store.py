@@ -11,11 +11,11 @@ from typing import Any, Dict, Iterable, Optional
 from backend.schemas import GenerateRequest, Outline
 from backend.utils.slug_utils import slugify
 
-from .report_store import (
+from .database_report_store import (
     StoredReportHandle,
     build_stored_report_handle,
     write_outline_snapshot,
-    write_transcript,
+    write_report_markdown,
 )
 
 _DEFAULT_STORAGE_ENV = "EXPLORER_REPORT_STORAGE_DIR"
@@ -25,7 +25,7 @@ _SYSTEM_USER_EMAIL = "system@explorer.local"
 _SYSTEM_USERNAME = "Explorer System"
 
 
-class FileOnlyReportStore:
+class FilesystemReportStore:
     """Persist outline + report artifacts to disk without database writes."""
 
     def __init__(self, *, base_dir: Optional[Path | str] = None) -> None:
@@ -55,11 +55,11 @@ class FileOnlyReportStore:
     def finalize_report(
         self,
         handle: StoredReportHandle,
-        transcript: str,
+        report_markdown: str,
         written_sections: Iterable[Dict[str, Any]],
         summary: Optional[str] = None,
     ) -> None:
-        write_transcript(handle, transcript)
+        write_report_markdown(handle, report_markdown)
         self._update_metadata(handle, summary, list(written_sections))
 
     def discard_report(self, handle: StoredReportHandle) -> None:

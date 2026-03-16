@@ -57,8 +57,10 @@ def parse_args() -> argparse.Namespace:
         help="Print each streamed event to stdout as it arrives.",
     )
     parser.add_argument(
+        "--section-count",
         "--sections",
         type=int,
+        dest="section_count",
         help="Force outlines or generated reports to contain exactly this many main sections.",
     )
     parser.add_argument(
@@ -136,13 +138,13 @@ def _infer_topic(payload: Dict[str, Any]) -> str | None:
 
 def _apply_generation_options(
     payload: Dict[str, Any],
-    sections: int | None,
+    section_count: int | None,
     subject_inclusions: Optional[List[str]],
     subject_exclusions: Optional[List[str]],
 ) -> Dict[str, Any]:
     merged_payload = dict(payload)
-    if sections is not None:
-        merged_payload["sections"] = sections
+    if section_count is not None:
+        merged_payload["section_count"] = section_count
     if subject_inclusions:
         merged_payload["subject_inclusions"] = subject_inclusions
     if subject_exclusions:
@@ -174,7 +176,7 @@ def _validate_generate_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 def load_payload(
     payload_file: Path | None,
     topic: str | None,
-    sections: int | None = None,
+    section_count: int | None = None,
     subject_inclusions: Optional[List[str]] = None,
     subject_exclusions: Optional[List[str]] = None,
     user_email: Optional[str] = None,
@@ -184,7 +186,7 @@ def load_payload(
         data = _load_json_mapping(payload_file)
         payload = _apply_generation_options(
             data,
-            sections,
+            section_count,
             subject_inclusions,
             subject_exclusions,
         )
@@ -198,7 +200,7 @@ def load_payload(
     payload: Dict[str, Any] = {"topic": topic, "mode": "generate_report"}
     payload = _apply_generation_options(
         payload,
-        sections,
+        section_count,
         subject_inclusions,
         subject_exclusions,
     )
@@ -311,8 +313,8 @@ def _stream_report(
 
 def main() -> None:
     args = parse_args()
-    if args.sections is not None and args.sections < 1:
-        raise SystemExit("--sections must be greater than or equal to 1.")
+    if args.section_count is not None and args.section_count < 1:
+        raise SystemExit("--section-count must be greater than or equal to 1.")
     subject_inclusions = _normalize_subject_args(
         args.subject_inclusions, "--subject-inclusion"
     )
@@ -322,7 +324,7 @@ def main() -> None:
     payload = load_payload(
         args.payload_file,
         args.topic,
-        sections=args.sections,
+        section_count=args.section_count,
         subject_inclusions=subject_inclusions,
         subject_exclusions=subject_exclusions,
         user_email=args.user_email,

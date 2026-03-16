@@ -1,15 +1,15 @@
 import React from 'react';
 
 export function ExploreSuggestions({
-    exploreSuggestions,
-    exploreLoading,
+    suggestions,
+    isLoading,
     selectedSuggestions,
-    exploreSelectMode,
-    exploreSelectToggleRef,
-    exploreSuggestionsRef,
-    handleRefreshExplore,
-    handleToggleExploreSuggestion,
-    toggleExploreSelectMode,
+    isSelectMode,
+    selectToggleRef,
+    suggestionsRef,
+    onRefresh,
+    onToggleSuggestion,
+    onToggleSelectMode,
     handleOpenTopic,
 }) {
     return (
@@ -22,26 +22,26 @@ export function ExploreSuggestions({
                     <button
                         type="button"
                         className="topic-view__pill topic-view__pill--action"
-                        onClick={handleRefreshExplore}
-                        disabled={exploreLoading}
+                        onClick={onRefresh}
+                        disabled={isLoading}
                         aria-label="Regenerate suggestions"
                     >
-                        {exploreLoading ? "…" : (
+                        {isLoading ? "…" : (
                             <svg className="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
                                 <path d="M20 4v6h-6l2.24-2.24A6 6 0 0 0 6 12a6 6 0 0 0 6 6 6 6 0 0 0 5.65-3.88l1.88.68A8 8 0 0 1 12 20 8 8 0 0 1 4 12a8 8 0 0 1 12.73-6.36L19 3z" />
                             </svg>
                         )}
                     </button>
-                    {exploreSuggestions.length > 0 && (
+                    {suggestions.length > 0 && (
                         <button
                             type="button"
-                            className={`select-toggle${exploreSelectMode ? " select-toggle--active" : ""}`}
-                            onClick={toggleExploreSelectMode}
-                            aria-pressed={exploreSelectMode}
+                            className={`select-toggle${isSelectMode ? " select-toggle--active" : ""}`}
+                            onClick={onToggleSelectMode}
+                            aria-pressed={isSelectMode}
                             aria-label="Toggle select mode"
-                            ref={exploreSelectToggleRef}
+                            ref={selectToggleRef}
                         >
-                            {exploreSelectMode && selectedSuggestions.length ? (
+                            {isSelectMode && selectedSuggestions.length ? (
                                 "Save"
                             ) : (
                                 <svg className="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -53,12 +53,12 @@ export function ExploreSuggestions({
                 </div>
             </div>
             <p className="topic-view__description">
-                {exploreLoading
+                {isLoading
                     ? "…"
                     : ``}
             </p>
-            <div className="explore__grid" ref={exploreSuggestionsRef}>
-                {exploreSuggestions.map((suggestion) => {
+            <div className="explore__grid" ref={suggestionsRef}>
+                {suggestions.map((suggestion) => {
                     const isSelected = selectedSuggestions.includes(suggestion);
                     return (
                         <button
@@ -66,13 +66,13 @@ export function ExploreSuggestions({
                             type="button"
                             className={`topic-view__pill explore__pill${isSelected ? " topic-view__pill--selected" : ""}`}
                             onClick={() => {
-                                if (exploreSelectMode) {
-                                    handleToggleExploreSuggestion(suggestion);
+                                if (isSelectMode) {
+                                    onToggleSuggestion(suggestion);
                                 } else {
                                     handleOpenTopic(suggestion);
                                 }
                             }}
-                            title={exploreSelectMode ? "Click to select" : "Click to open"}
+                            title={isSelectMode ? "Click to select" : "Click to open"}
                         >
                             {suggestion}
                         </button>

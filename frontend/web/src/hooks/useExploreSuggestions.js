@@ -1,25 +1,25 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchTopicSuggestions } from '../utils/apiClient';
 
-export function useExplore({
+export function useExploreSuggestions({
     apiBase,
     savedTopics,
     savedReports,
     suggestionModel,
-    rememberTopics,
+    saveTopics,
 }) {
-    const [exploreSuggestions, setExploreSuggestions] = useState([]);
-    const [exploreLoading, setExploreLoading] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [selectedSuggestions, setSelectedSuggestions] = useState([]);
-    const [exploreNonce, setExploreNonce] = useState(0);
-    const [exploreSelectMode, setExploreSelectMode] = useState(false);
-    const exploreSelectToggleRef = useRef(null);
-    const exploreSuggestionsRef = useRef(null);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const selectToggleRef = useRef(null);
+    const suggestionsRef = useRef(null);
 
     useEffect(() => {
         const controller = new AbortController();
-        const loadExplore = async () => {
-            setExploreLoading(true);
+        const loadSuggestions = async () => {
+            setIsLoading(true);
             setSelectedSuggestions([]);
             const seeds = [
                 ...savedTopics.map((entry) => entry.title),
@@ -31,18 +31,18 @@ export function useExplore({
                 signal: controller.signal,
             });
             if (controller.signal.aborted) return;
-            setExploreSuggestions(remote || []);
-            setExploreLoading(false);
+            setSuggestions(remote || []);
+            setIsLoading(false);
         };
-        loadExplore();
+        loadSuggestions();
         return () => controller.abort();
-    }, [apiBase, exploreNonce, savedReports, savedTopics, suggestionModel]);
+    }, [apiBase, refreshKey, savedReports, savedTopics, suggestionModel]);
 
-    const handleRefreshExplore = useCallback(() => {
-        setExploreNonce((value) => value + 1);
+    const refreshSuggestions = useCallback(() => {
+        setRefreshKey((value) => value + 1);
     }, []);
 
-    const handleToggleExploreSuggestion = useCallback((title) => {
+    const toggleSuggestionSelection = useCallback((title) => {
         const normalized = (title || "").trim();
         if (!normalized) return;
         setSelectedSuggestions((current) => {
@@ -55,15 +55,15 @@ export function useExplore({
 
     const saveSelectedSuggestions = useCallback(() => {
         if (!selectedSuggestions.length) return;
-        rememberTopics(selectedSuggestions);
+        saveTopics(selectedSuggestions);
         setSelectedSuggestions([]);
-        setExploreSelectMode(false);
-    }, [rememberTopics, selectedSuggestions]);
+        setIsSelectMode(false);
+    }, [saveTopics, selectedSuggestions]);
 
-    const toggleExploreSelectMode = useCallback(() => {
-        if (!exploreSelectMode) {
+    const toggleSelectMode = useCallback(() => {
+        if (!isSelectMode) {
             setSelectedSuggestions([]);
-            setExploreSelectMode(true);
+            setIsSelectMode(true);
             return;
         }
         if (selectedSuggestions.length) {
@@ -71,35 +71,35 @@ export function useExplore({
             return;
         }
         setSelectedSuggestions([]);
-        setExploreSelectMode(false);
-    }, [exploreSelectMode, saveSelectedSuggestions, selectedSuggestions.length]);
+        setIsSelectMode(false);
+    }, [isSelectMode, saveSelectedSuggestions, selectedSuggestions.length]);
 
     useEffect(() => {
         const handleGlobalClick = (event) => {
             const target = event.target;
             if (
-                exploreSelectMode &&
-                exploreSuggestionsRef.current &&
-                !exploreSuggestionsRef.current.contains(target) &&
-                !exploreSelectToggleRef.current?.contains(target)
+                isSelectMode &&
+                suggestionsRef.current &&
+                !suggestionsRef.current.contains(target) &&
+                !selectToggleRef.current?.contains(target)
             ) {
                 setSelectedSuggestions([]);
-                setExploreSelectMode(false);
+                setIsSelectMode(false);
             }
         };
         document.addEventListener("mousedown", handleGlobalClick);
         return () => document.removeEventListener("mousedown", handleGlobalClick);
-    }, [exploreSelectMode]);
+    }, [isSelectMode]);
 
     return {
-        exploreSuggestions,
-        exploreLoading,
+        suggestions,
+        isLoading,
         selectedSuggestions,
-        exploreSelectMode,
-        exploreSelectToggleRef,
-        exploreSuggestionsRef,
-        handleRefreshExplore,
-        handleToggleExploreSuggestion,
-        toggleExploreSelectMode,
+        isSelectMode,
+        selectToggleRef,
+        suggestionsRef,
+        refreshSuggestions,
+        toggleSuggestionSelection,
+        toggleSelectMode,
     };
 }

@@ -47,7 +47,7 @@ export function useGeneration({
     user,
     modelsPayload,
     sectionCount,
-    rememberTopicTitle,
+    saveTopic,
     appendMessage,
     runReportFlow,
     setActiveReport,
@@ -86,7 +86,7 @@ export function useGeneration({
             setActiveReport(null);
 
             const assistantId = makeRunId();
-            rememberTopicTitle(normalizedTopicTitle);
+            saveTopic(normalizedTopicTitle);
             appendMessage({
                 id: `${assistantId}-user`,
                 role: 'user',
@@ -111,7 +111,7 @@ export function useGeneration({
                         topic: normalizedTopicTitle,
                         mode: 'generate_report',
                         return: 'report_with_outline',
-                        sections: sectionCount || undefined,
+                        section_count: sectionCount || undefined,
                         models: modelsPayload,
                         user_email: user.email || undefined,
                         username: user.username || undefined,
@@ -132,7 +132,7 @@ export function useGeneration({
             appendMessage,
             isRunning,
             modelsPayload,
-            rememberTopicTitle,
+            saveTopic,
             runReportFlow,
             sectionCount,
             setActiveReport,

@@ -16,7 +16,7 @@ from backend.db import (
     session_scope,
 )
 from backend.schemas import GenerateRequest, Outline, Section
-from backend.storage import GeneratedReportStore
+from backend.storage import DatabaseReportStore
 
 
 def _session_factory():
@@ -25,9 +25,9 @@ def _session_factory():
     return create_session_factory(engine)
 
 
-def test_generated_report_store_persists_artifacts(tmp_path: Path):
+def test_database_report_store_persists_artifacts(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
+    store = DatabaseReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
     outline = Outline(
         report_title="Solar Energy Growth",
         sections=[Section(title="1: Introduction", subsections=["1.1: Framing"])],
@@ -44,11 +44,11 @@ def test_generated_report_store_persists_artifacts(tmp_path: Path):
     handle = store.prepare_report(request, outline)
     assert handle.outline_path.exists()
 
-    transcript = "Solar Energy Growth\n\n1: Introduction\n\n1.1: Framing\n\nDetailed body."
+    report_markdown = "Solar Energy Growth\n\n1: Introduction\n\n1.1: Framing\n\nDetailed body."
     sections = [{"title": "1: Introduction", "body": "1.1: Framing"}]
-    store.finalize_report(handle, transcript, sections)
+    store.finalize_report(handle, report_markdown, sections)
 
-    assert handle.transcript_path.read_text(encoding="utf-8").strip().startswith("Solar Energy Growth")
+    assert handle.report_path.read_text(encoding="utf-8").strip().startswith("Solar Energy Growth")
 
     with session_scope(session_factory) as session:
         stored = session.get(Report, handle.report_id)
@@ -59,9 +59,9 @@ def test_generated_report_store_persists_artifacts(tmp_path: Path):
         assert stored.sections["written"][0]["title"] == "1: Introduction"
 
 
-def test_generated_report_store_discards_failed_reports(tmp_path: Path):
+def test_database_report_store_discards_failed_reports(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
+    store = DatabaseReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
     outline = Outline(report_title="Failure Case", sections=[])
     request = GenerateRequest.model_validate(
         {
@@ -81,7 +81,7 @@ def test_generated_report_store_discards_failed_reports(tmp_path: Path):
 
 def test_prepare_report_marks_failed_when_outline_snapshot_write_breaks(tmp_path: Path, monkeypatch):
     session_factory = _session_factory()
-    store = GeneratedReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
+    store = DatabaseReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
     outline = Outline(report_title="Outline Failure", sections=[])
     request = GenerateRequest.model_validate(
         {
@@ -104,7 +104,7 @@ def test_prepare_report_marks_failed_when_outline_snapshot_write_breaks(tmp_path
 
 def test_prepare_report_uses_username_for_custom_users(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
+    store = DatabaseReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
     outline = Outline(report_title="Custom User", sections=[])
     request = GenerateRequest.model_validate(
         {
@@ -125,7 +125,7 @@ def test_prepare_report_uses_username_for_custom_users(tmp_path: Path):
 
 def test_prepare_report_replaces_placeholder_names(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
+    store = DatabaseReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
     outline = Outline(report_title="Rename User", sections=[])
 
     placeholder_email = "user@example.com"
@@ -163,7 +163,7 @@ def _fetch_saved_topic(session_factory, report_id):
 
 def test_prepare_report_revives_soft_deleted_topic(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
+    store = DatabaseReportStore(base_dir=tmp_path / "reports", session_factory=session_factory)
     with session_scope(session_factory) as session:
         user = User(email="user@example.com", full_name="User", username="User")
         session.add(user)
@@ -190,7 +190,7 @@ def test_prepare_report_revives_soft_deleted_topic(tmp_path: Path):
 
 def test_prepare_report_trims_request_topic_titles(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(
+    store = DatabaseReportStore(
         base_dir=tmp_path / "reports", session_factory=session_factory
     )
     outline = Outline(report_title="Outline Title", sections=[])
@@ -208,7 +208,7 @@ def test_prepare_report_trims_request_topic_titles(tmp_path: Path):
 
 def test_prepare_report_limits_outline_title_length(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(
+    store = DatabaseReportStore(
         base_dir=tmp_path / "reports", session_factory=session_factory
     )
     long_title = "A" * 300
@@ -227,7 +227,7 @@ def test_prepare_report_limits_outline_title_length(tmp_path: Path):
 
 def test_prepare_report_does_not_merge_different_titles_with_same_slug(tmp_path: Path):
     session_factory = _session_factory()
-    store = GeneratedReportStore(
+    store = DatabaseReportStore(
         base_dir=tmp_path / "reports", session_factory=session_factory
     )
     outline = Outline(report_title="Slug Collision", sections=[])

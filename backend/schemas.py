@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Literal, Optional
 import uuid
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 from backend.db import ReportStatus
 
@@ -53,9 +53,10 @@ class SubjectFilters(BaseModel):
         default_factory=list,
         description="Subjects that must be avoided; defaults to none.",
     )
-    sections: Optional[int] = Field(
+    section_count: Optional[int] = Field(
         default=None,
         ge=1,
+        validation_alias=AliasChoices("section_count", "sections"),
         description="Force the content to contain exactly this many main sections when provided.",
     )
 

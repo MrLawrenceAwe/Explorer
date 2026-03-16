@@ -63,7 +63,7 @@ export function useSavedData({ apiBase, user }) {
         refreshSavedData();
     }, [refreshSavedData]);
 
-    const rememberReport = useCallback(async (topic, content, title, outline = null) => {
+    const syncSavedReportsAfterGeneration = useCallback(async (topic, content, title, outline = null) => {
         const safeContent = content || '';
         const normalizedTitle = (title || topic || 'Explorer Report').trim() || 'Explorer Report';
         const normalizedTopic = (topic || normalizedTitle).trim();
@@ -104,7 +104,7 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [loadReports, user?.email]);
 
-    const forgetReport = useCallback(async (id) => {
+    const deleteSavedReportEntry = useCallback(async (id) => {
         if (!id) return null;
 
         const reportToDelete = savedReports.find((report) => report.id === id);
@@ -124,7 +124,7 @@ export function useSavedData({ apiBase, user }) {
         return reportToDelete;
     }, [apiBase, user, savedReports]);
 
-    const rememberTopics = useCallback(async (titles) => {
+    const saveTopics = useCallback(async (titles) => {
         const normalizedTitles = (Array.isArray(titles) ? titles : [titles])
             .map((entry) => (entry || '').trim())
             .filter(Boolean);
@@ -165,12 +165,12 @@ export function useSavedData({ apiBase, user }) {
         }
     }, [apiBase, loadTopics, user]);
 
-    const rememberTopicTitle = useCallback(
-        (title) => rememberTopics([title]),
-        [rememberTopics]
+    const saveTopic = useCallback(
+        (title) => saveTopics([title]),
+        [saveTopics]
     );
 
-    const forgetTopic = useCallback(async (id) => {
+    const deleteSavedTopicEntry = useCallback(async (id) => {
         if (!id) return;
         if (!user?.email) {
             setSavedTopics((current) => current.filter((entry) => entry.id !== id));
@@ -207,11 +207,11 @@ export function useSavedData({ apiBase, user }) {
         loadTopics,
         loadReports,
         refreshSavedData,
-        rememberReport,
-        forgetReport,
-        rememberTopics,
-        rememberTopicTitle,
-        forgetTopic,
+        syncSavedReportsAfterGeneration,
+        deleteSavedReportEntry,
+        saveTopics,
+        saveTopic,
+        deleteSavedTopicEntry,
         updateTopicCollection,
     };
 }

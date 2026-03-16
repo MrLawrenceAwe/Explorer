@@ -1,4 +1,4 @@
-from .file_report_store import FileOnlyReportStore
-from .report_store import GeneratedReportStore, StoredReportHandle
+from .filesystem_report_store import FilesystemReportStore
+from .database_report_store import DatabaseReportStore, StoredReportHandle
 
-__all__ = ["FileOnlyReportStore", "GeneratedReportStore", "StoredReportHandle"]
+__all__ = ["FilesystemReportStore", "DatabaseReportStore", "StoredReportHandle"]

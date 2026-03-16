@@ -5,7 +5,7 @@ from typing import List, Optional
 
 def _build_outline_prompt_base(
     topic: str,
-    sections: Optional[int] = None,
+    section_count: Optional[int] = None,
     subject_inclusions: Optional[List[str]] = None,
     subject_exclusions: Optional[List[str]] = None,
 ) -> str:
@@ -16,8 +16,8 @@ def _build_outline_prompt_base(
         "Give every main section and every subsection a clear, descriptive header/title.",
         "Make sure it's comprehensive, covering key concepts and sub-topics.",
     ]
-    if sections:
-        instructions.append(f"Create exactly {sections} main sections.")
+    if section_count:
+        instructions.append(f"Create exactly {section_count} main sections.")
     if subject_inclusions:
         inclusions_text = ", ".join(subject_inclusions)
         instructions.append(f"Ensure these subjects are covered in the outline: {inclusions_text}.")
@@ -29,13 +29,13 @@ def _build_outline_prompt_base(
 
 def build_outline_prompt_json(
     topic: str,
-    sections: Optional[int] = None,
+    section_count: Optional[int] = None,
     subject_inclusions: Optional[List[str]] = None,
     subject_exclusions: Optional[List[str]] = None,
 ) -> str:
     return _build_outline_prompt_base(
         topic,
-        sections,
+        section_count,
         subject_inclusions,
         subject_exclusions,
     ) + """Return valid JSON only with this schema:
@@ -53,13 +53,13 @@ def build_outline_prompt_json(
 
 def build_outline_prompt_markdown(
     topic: str,
-    sections: Optional[int] = None,
+    section_count: Optional[int] = None,
     subject_inclusions: Optional[List[str]] = None,
     subject_exclusions: Optional[List[str]] = None,
 ) -> str:
     return _build_outline_prompt_base(
         topic,
-        sections,
+        section_count,
         subject_inclusions,
         subject_exclusions,
     ) + """Return Markdown only.
@@ -109,11 +109,11 @@ def build_section_editor_prompt(
 ) -> str:
     section_body = section_text.strip() or "(no body text)"
     return f"""
-Edit the following section body from the report "{report_title}" into an audio-friendly transcript while preserving every fact.
+Edit the following section body from the report "{report_title}" into audio-friendly prose while preserving every fact.
 Keep every heading line exactly as written (they already contain numbering like `1.1: ...`); do not add Markdown `#` symbols, change the numbering, or repeat the section title "{section_title}".
 Rewrite only the paragraph text beneath those headings using a conversational tone.
-Where appropriate, enrich the transcript with short, clarifying examples.
-Never add editor prefaces such as "Sure, here's the rewrite", "As an AI", "Here you go", or meta commentary; begin directly with the first heading and transcript. Remove any editor prefaces, apologies, AI/system disclaimers, or meta commentary; never prepend or append anything outside the transcript itself.
+Where appropriate, enrich the prose with short, clarifying examples.
+Never add editor prefaces such as "Sure, here's the rewrite", "As an AI", "Here you go", or meta commentary; begin directly with the first heading and section text. Remove any editor prefaces, apologies, AI/system disclaimers, or meta commentary; never prepend or append anything outside the rewritten section.
 
 Section body to edit:
 {section_body}

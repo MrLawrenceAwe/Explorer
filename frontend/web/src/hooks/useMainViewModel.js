@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 
-export function useMainViewState({
+export function useMainViewModel({
     isRunning,
     isHomeView,
     isReportViewOpen,

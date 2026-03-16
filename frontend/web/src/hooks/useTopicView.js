@@ -5,7 +5,7 @@ import { parseTopicsList } from '../utils/reportTextUtils';
 export function useTopicView({
     apiBase,
     suggestionModel,
-    rememberTopics,
+    saveTopics,
     isRunning,
     generateReportFromTopic,
 }) {
@@ -13,26 +13,26 @@ export function useTopicView({
     const [draftTopic, setDraftTopic] = useState("");
     const [isTopicEditing, setIsTopicEditing] = useState(false);
     const [topicSuggestions, setTopicSuggestions] = useState([]);
-    const [topicSuggestionsLoading, setTopicSuggestionsLoading] = useState(false);
+    const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
     const [topicSuggestionsNonce, setTopicSuggestionsNonce] = useState(0);
     const [selectedSuggestions, setSelectedSuggestions] = useState([]);
-    const [topicSelectMode, setTopicSelectMode] = useState(false);
+    const [isSuggestionSelectMode, setIsSuggestionSelectMode] = useState(false);
     const [suggestionsPaused, setSuggestionsPaused] = useState(false);
     const [avoidTopics, setAvoidTopics] = useState("");
     const [includeTopics, setIncludeTopics] = useState("");
     const topicSelectToggleRef = useRef(null);
     const topicSuggestionsRef = useRef(null);
-    const topicViewEditorRef = useRef(null);
+    const titleEditorRef = useRef(null);
     const skipTopicCommitRef = useRef(false);
     useEffect(() => {
         if (isTopicEditing) {
-            topicViewEditorRef.current?.focus();
-            topicViewEditorRef.current?.select?.();
+            titleEditorRef.current?.focus();
+            titleEditorRef.current?.select?.();
         }
     }, [isTopicEditing]);
 
     const loadSuggestions = useCallback(async (topic, signal) => {
-        setTopicSuggestionsLoading(true);
+        setIsSuggestionsLoading(true);
         try {
             const remote = await fetchTopicSuggestions(apiBase, {
                 topic,
@@ -45,7 +45,7 @@ export function useTopicView({
             setTopicSuggestions(remote || []);
         } finally {
             if (!signal.aborted) {
-                setTopicSuggestionsLoading(false);
+                setIsSuggestionsLoading(false);
             }
         }
     }, [apiBase, suggestionModel]);
@@ -55,7 +55,7 @@ export function useTopicView({
         const controller = new AbortController();
         loadSuggestions(activeTopic, controller.signal).catch(() => {
             if (!controller.signal.aborted) {
-                setTopicSuggestionsLoading(false);
+                setIsSuggestionsLoading(false);
             }
         });
         return () => controller.abort();
@@ -68,9 +68,9 @@ export function useTopicView({
         setActiveTopic(normalized);
         setDraftTopic(normalized);
         setIsTopicEditing(false);
-        setTopicSuggestionsLoading(!pauseSuggestions);
+        setIsSuggestionsLoading(!pauseSuggestions);
         setSelectedSuggestions([]);
-        setTopicSelectMode(false);
+        setIsSuggestionSelectMode(false);
         setTopicSuggestions([]);
         setSuggestionsPaused(pauseSuggestions);
     }, []);
@@ -81,7 +81,7 @@ export function useTopicView({
         setIsTopicEditing(false);
         setTopicSuggestions([]);
         setSelectedSuggestions([]);
-        setTopicSelectMode(false);
+        setIsSuggestionSelectMode(false);
         setSuggestionsPaused(false);
         setAvoidTopics("");
         setIncludeTopics("");
@@ -110,9 +110,9 @@ export function useTopicView({
         if (normalized && normalized !== activeTopic) {
             setActiveTopic(normalized);
             setDraftTopic(normalized);
-            setTopicSuggestionsLoading(true);
+            setIsSuggestionsLoading(true);
             setSelectedSuggestions([]);
-            setTopicSelectMode(false);
+            setIsSuggestionSelectMode(false);
         } else {
             setDraftTopic(activeTopic);
         }
@@ -163,8 +163,8 @@ export function useTopicView({
 
     const handleTopicViewSave = useCallback(() => {
         if (!activeTopic) return;
-        rememberTopics([activeTopic]);
-    }, [rememberTopics, activeTopic]);
+        saveTopics([activeTopic]);
+    }, [saveTopics, activeTopic]);
 
     const handleSuggestionToggle = useCallback((title) => {
         const normalized = (title || "").trim();
@@ -179,21 +179,21 @@ export function useTopicView({
 
     const handleSaveSelectedSuggestions = useCallback(() => {
         if (!selectedSuggestions.length) return;
-        rememberTopics(selectedSuggestions);
+        saveTopics(selectedSuggestions);
         setSelectedSuggestions([]);
-        setTopicSelectMode(false);
-    }, [rememberTopics, selectedSuggestions]);
+        setIsSuggestionSelectMode(false);
+    }, [saveTopics, selectedSuggestions]);
 
     const handleRefreshSuggestions = useCallback(() => {
         setSuggestionsPaused(false);
-        setTopicSuggestionsLoading(true);
+        setIsSuggestionsLoading(true);
         setTopicSuggestionsNonce((value) => value + 1);
     }, []);
 
     const handleToggleTopicSelectMode = useCallback(() => {
-        if (!topicSelectMode) {
+        if (!isSuggestionSelectMode) {
             setSelectedSuggestions([]);
-            setTopicSelectMode(true);
+            setIsSuggestionSelectMode(true);
             return;
         }
         if (selectedSuggestions.length) {
@@ -201,25 +201,25 @@ export function useTopicView({
             return;
         }
         setSelectedSuggestions([]);
-        setTopicSelectMode(false);
-    }, [handleSaveSelectedSuggestions, selectedSuggestions.length, topicSelectMode]);
+        setIsSuggestionSelectMode(false);
+    }, [handleSaveSelectedSuggestions, selectedSuggestions.length, isSuggestionSelectMode]);
 
     useEffect(() => {
         const handleGlobalClick = (event) => {
             const target = event.target;
             if (
-                topicSelectMode &&
+                isSuggestionSelectMode &&
                 topicSuggestionsRef.current &&
                 !topicSuggestionsRef.current.contains(target) &&
                 !topicSelectToggleRef.current?.contains(target)
             ) {
                 setSelectedSuggestions([]);
-                setTopicSelectMode(false);
+                setIsSuggestionSelectMode(false);
             }
         };
         document.addEventListener("mousedown", handleGlobalClick);
         return () => document.removeEventListener("mousedown", handleGlobalClick);
-    }, [topicSelectMode]);
+    }, [isSuggestionSelectMode]);
 
     return {
         activeTopic,
@@ -227,12 +227,12 @@ export function useTopicView({
         setDraftTopic,
         isTopicEditing,
         topicSuggestions,
-        topicSuggestionsLoading,
+        suggestionsLoading: isSuggestionsLoading,
         selectedSuggestions,
-        topicSelectMode,
-        topicSelectToggleRef,
-        topicSuggestionsRef,
-        topicViewEditorRef,
+        selectMode: isSuggestionSelectMode,
+        selectToggleRef: topicSelectToggleRef,
+        suggestionsRef: topicSuggestionsRef,
+        titleEditorRef,
         openTopicView,
         closeTopicView,
         startTopicEditing,

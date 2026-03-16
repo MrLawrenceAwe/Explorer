@@ -30,7 +30,7 @@ class OutlineService:
         reasoning_effort: Optional[ReasoningEffort] = None,
         *,
         model_spec: Optional[ModelSpec] = None,
-        sections: Optional[int] = None,
+        section_count: Optional[int] = None,
         subject_inclusions: Optional[List[str]] = None,
         subject_exclusions: Optional[List[str]] = None,
     ) -> OutlineRequest:
@@ -49,7 +49,7 @@ class OutlineService:
             topic=normalized_topic,
             format=outline_format,
             model=spec,
-            sections=sections,
+            section_count=section_count,
             subject_inclusions=subject_inclusions or [],
             subject_exclusions=subject_exclusions or [],
         )
@@ -72,14 +72,14 @@ class OutlineService:
         prompt = (
             build_outline_prompt_json(
                 outline_request.topic,
-                outline_request.sections,
+                outline_request.section_count,
                 outline_request.subject_inclusions,
                 outline_request.subject_exclusions,
             )
             if outline_request.format == "json"
             else build_outline_prompt_markdown(
                 outline_request.topic,
-                outline_request.sections,
+                outline_request.section_count,
                 outline_request.subject_inclusions,
                 outline_request.subject_exclusions,
             )

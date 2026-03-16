@@ -20,10 +20,10 @@ def test_generate_request_strips_topic_whitespace():
 
 def test_generate_request_accepts_sections_hint():
     request = GenerateRequest.model_validate(
-        {"topic": "Quantum Computing", "mode": "generate_report", "sections": 3}
+        {"topic": "Quantum Computing", "mode": "generate_report", "section_count": 3}
     )
 
-    assert request.sections == 3
+    assert request.section_count == 3
 
 
 def test_generate_request_subject_lists_trimmed():
@@ -63,7 +63,7 @@ def test_outline_request_rejects_blank_topic():
 
 def test_outline_request_rejects_invalid_sections():
     with pytest.raises(ValidationError) as excinfo:
-        OutlineRequest.model_validate({"topic": "AI Safety", "sections": 0})
+        OutlineRequest.model_validate({"topic": "AI Safety", "section_count": 0})
 
     assert "greater than or equal to 1" in str(excinfo.value)
 
@@ -107,10 +107,10 @@ def test_outline_service_build_outline_request_applies_sections():
         "json",
         model_name=None,
         reasoning_effort=None,
-        sections=4,
+        section_count=4,
     )
 
-    assert outline_request.sections == 4
+    assert outline_request.section_count == 4
 
 
 def test_outline_service_build_outline_request_passes_subject_filters():

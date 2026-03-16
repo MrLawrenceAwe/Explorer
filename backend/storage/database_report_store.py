@@ -39,7 +39,7 @@ class StoredReportHandle:
     owner_user_id: uuid.UUID
     report_dir: Path
     outline_path: Path
-    transcript_path: Path
+    report_path: Path
 
 
 def build_stored_report_handle(
@@ -55,7 +55,7 @@ def build_stored_report_handle(
         owner_user_id=owner_user_id,
         report_dir=report_dir,
         outline_path=report_dir / "outline.json",
-        transcript_path=report_dir / "report.md",
+        report_path=report_dir / "report.md",
     )
 
 
@@ -67,13 +67,13 @@ def write_outline_snapshot(handle: StoredReportHandle, outline: Outline) -> None
     )
 
 
-def write_transcript(handle: StoredReportHandle, transcript: str) -> None:
-    text = transcript.strip() + "\n"
-    handle.transcript_path.parent.mkdir(parents=True, exist_ok=True)
-    handle.transcript_path.write_text(text, encoding="utf-8")
+def write_report_markdown(handle: StoredReportHandle, report_markdown: str) -> None:
+    text = report_markdown.strip() + "\n"
+    handle.report_path.parent.mkdir(parents=True, exist_ok=True)
+    handle.report_path.write_text(text, encoding="utf-8")
 
 
-class GeneratedReportStore:
+class DatabaseReportStore:
     """Persist generated report metadata plus artifacts to disk."""
 
     def __init__(
@@ -149,13 +149,13 @@ class GeneratedReportStore:
     def finalize_report(
         self,
         handle: StoredReportHandle,
-        transcript: str,
+        report_markdown: str,
         written_sections: Iterable[Dict[str, Any]],
         summary: Optional[str] = None,
     ) -> None:
-        """Persist the final transcript and update DB metadata."""
+        """Persist the final report markdown and update DB metadata."""
 
-        write_transcript(handle, transcript)
+        write_report_markdown(handle, report_markdown)
         sections_payload = list(written_sections)
         with session_scope(self._session_factory) as session:
             report = session.get(Report, handle.report_id)
@@ -165,7 +165,7 @@ class GeneratedReportStore:
             if summary:
                 report.summary = summary
             report.sections = {"outline": report.outline_snapshot, "written": sections_payload}
-            report.content_uri = self._relative_uri(handle.transcript_path)
+            report.content_uri = self._relative_uri(handle.report_path)
             report.generated_completed_at = datetime.now(timezone.utc)
 
     def discard_report(self, handle: StoredReportHandle) -> None:

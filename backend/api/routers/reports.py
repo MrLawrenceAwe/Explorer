@@ -16,7 +16,7 @@ from backend.api.dependencies import (
 from backend.db import Report, session_scope
 from backend.schemas import ReportResponse, GenerateRequest
 from backend.services.report_service import ReportGeneratorService
-from backend.storage import FileOnlyReportStore, GeneratedReportStore
+from backend.storage import FilesystemReportStore, DatabaseReportStore
 from backend.utils.api_helpers import (
     build_report_response,
     get_user_report,
@@ -61,7 +61,7 @@ def list_reports(
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     include_content: bool = Query(False, description="When true, includes report content from storage."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
-    report_store: Optional[GeneratedReportStore | FileOnlyReportStore] = Depends(get_report_store),
+    report_store: Optional[DatabaseReportStore | FilesystemReportStore] = Depends(get_report_store),
 ):
     user_email, username = normalize_user(user_email, username)
     base_dir = resolve_base_dir(report_store)
@@ -85,7 +85,7 @@ def get_report(
     ),
     username: Optional[str] = Query(None, description="Optional username stored when creating the user record."),
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
-    report_store: Optional[GeneratedReportStore | FileOnlyReportStore] = Depends(get_report_store),
+    report_store: Optional[DatabaseReportStore | FilesystemReportStore] = Depends(get_report_store),
 ):
     user_email, username = normalize_user(user_email, username)
     base_dir = resolve_base_dir(report_store)

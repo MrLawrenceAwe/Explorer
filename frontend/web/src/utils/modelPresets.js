@@ -18,7 +18,7 @@ export const MODEL_STAGES = [
     {
         key: "editor",
         label: "Editor",
-        description: "Edits prose into a transcript suitable for audio format.",
+        description: "Edits prose into narration-ready audio-friendly format.",
     },
 ];
 

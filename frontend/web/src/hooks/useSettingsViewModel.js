@@ -1,11 +1,11 @@
 import { useSettings } from './useSettings';
-import { usePersistence } from './usePersistence';
+import { usePersistModelSettings } from './usePersistModelSettings';
 import { MODEL_PRESET_LABELS } from '../utils/modelPresets';
 
-export function useSettingsController({ user, setUser }) {
+export function useSettingsViewModel({ user, setUser }) {
     const settings = useSettings();
 
-    usePersistence({
+    usePersistModelSettings({
         modelPresets: settings.modelPresets,
         defaultPreset: settings.defaultPreset,
         suggestionModel: settings.suggestionModel,
