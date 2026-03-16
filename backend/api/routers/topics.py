@@ -7,26 +7,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.api.dependencies import get_session_factory
-from backend.db import SavedTopic, TopicCollection, Report, session_scope
+from backend.db import SavedTopic, Report, session_scope
 from backend.schemas import SavedTopicResponse, CreateSavedTopicRequest, UpdateSavedTopicRequest
 from backend.utils.api_helpers import (
     normalize_user,
-    get_or_create_user,
-    get_user_by_email,
     resolve_topic_title,
-    slugify,
 )
+from backend.utils.saved_topics import (
+    get_or_create_saved_topic,
+    validate_collection_for_user,
+)
+from backend.utils.user_utils import get_or_create_user, get_user_by_email
 
 router = APIRouter()
-
-
-def _validate_collection(
-    session: Session, user_id: uuid.UUID, collection_id: uuid.UUID
-) -> uuid.UUID:
-    collection = session.get(TopicCollection, collection_id)
-    if not collection or collection.owner_user_id != user_id or collection.is_deleted:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid collection.")
-    return collection_id
 
 @router.get("/saved_topics", response_model=List[SavedTopicResponse])
 def list_saved_topics(
@@ -76,62 +69,17 @@ def create_saved_topic(
     title = resolve_topic_title(payload.title)
     with session_scope(session_factory) as session:
         user = get_or_create_user(session, user_email, username)
-        existing = session.scalar(
-            select(SavedTopic).where(
-                SavedTopic.owner_user_id == user.id,
-                SavedTopic.title == title,
-            )
-        )
-        if existing:
-            if existing.is_deleted:
-                existing.is_deleted = False
-            # Update collection if provided
-            if payload.collection_id is not None:
-                existing.collection_id = _validate_collection(
-                    session, user.id, payload.collection_id
-                )
-            return SavedTopicResponse(
-                id=existing.id,
-                title=existing.title,
-                slug=existing.slug,
-                collection_id=existing.collection_id,
-                created_at=existing.created_at.isoformat(),
-            )
-
-        base_slug = slugify(title)
-        slug = base_slug
-        attempt = 0
-        while True:
-            conflict = session.scalar(select(SavedTopic).where(SavedTopic.slug == slug))
-            if conflict is None:
-                break
-            if conflict.owner_user_id == user.id and conflict.title == title:
-                existing_topic = conflict
-                if existing_topic.is_deleted:
-                    existing_topic.is_deleted = False
-                return SavedTopicResponse(
-                    id=existing_topic.id,
-                    title=existing_topic.title,
-                    slug=existing_topic.slug,
-                    collection_id=existing_topic.collection_id,
-                    created_at=existing_topic.created_at.isoformat(),
-                )
-            attempt += 1
-            slug = f"{base_slug}-{attempt}"
-
-        # Validate collection_id if provided
         collection_id = payload.collection_id
         if collection_id is not None:
-            collection_id = _validate_collection(session, user.id, collection_id)
+            collection_id = validate_collection_for_user(session, user.id, collection_id)
 
-        topic = SavedTopic(
-            slug=slug,
-            title=title,
-            owner=user,
+        topic = get_or_create_saved_topic(
+            session,
+            user,
+            title,
             collection_id=collection_id,
+            update_existing_collection=payload.collection_id is not None,
         )
-        session.add(topic)
-        session.flush()
         return SavedTopicResponse(
             id=topic.id,
             title=topic.title,
@@ -195,7 +143,7 @@ def update_saved_topic(
         # Update collection_id
         if "collection_id" in payload.model_fields_set:
             if payload.collection_id is not None:
-                topic.collection_id = _validate_collection(
+                topic.collection_id = validate_collection_for_user(
                     session, user.id, payload.collection_id
                 )
             else:

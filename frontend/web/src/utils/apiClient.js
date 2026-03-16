@@ -52,11 +52,6 @@ function mapCollection(collection) {
     return {
         id: collection.id,
         name: collection.name,
-        description: collection.description || null,
-        color: collection.color || null,
-        icon: collection.icon || null,
-        position: collection.position || 0,
-        topicCount: collection.topic_count || 0,
     };
 }
 

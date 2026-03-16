@@ -99,3 +99,46 @@ def test_create_saved_topic_rejects_foreign_collection_for_existing_topic():
         )
         assert topic is not None
         assert topic.collection_id is None
+
+
+def test_create_saved_topic_revives_deleted_row_and_updates_collection():
+    session_factory = _session_factory()
+
+    created = create_saved_topic(
+        payload=CreateSavedTopicRequest(title="Shared Topic"),
+        user_email="a@example.com",
+        username="A",
+        session_factory=session_factory,
+    )
+
+    with session_scope(session_factory) as session:
+        user_a = session.scalar(select(User).where(User.email == "a@example.com"))
+        assert user_a is not None
+
+        topic = session.get(SavedTopic, created.id)
+        assert topic is not None
+        topic.is_deleted = True
+
+        collection = TopicCollection(name="Research", owner=user_a)
+        session.add(collection)
+        session.flush()
+        collection_id = collection.id
+
+    revived = create_saved_topic(
+        payload=CreateSavedTopicRequest(
+            title="Shared Topic",
+            collection_id=collection_id,
+        ),
+        user_email="a@example.com",
+        username="A",
+        session_factory=session_factory,
+    )
+
+    assert revived.id == created.id
+    assert revived.collection_id == collection_id
+
+    with session_scope(session_factory) as session:
+        topic = session.get(SavedTopic, created.id)
+        assert topic is not None
+        assert topic.is_deleted is False
+        assert topic.collection_id == collection_id

@@ -1,47 +1,5 @@
 import React, { useState } from 'react';
-
-function parseModules(rawModules) {
-    const lines = (rawModules || '')
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-    return lines
-        .map((line) => {
-            const separator = line.includes(':') ? ':' : line.includes('>') ? '>' : null;
-            if (!separator) {
-                return {
-                    title: line,
-                    topics: [],
-                };
-            }
-
-            const [moduleTitleRaw, topicsRaw = ''] = line.split(separator);
-            const title = moduleTitleRaw.trim();
-            const topics = topicsRaw
-                .split(',')
-                .map((topic) => topic.trim())
-                .filter(Boolean)
-                .map((topic) => ({ title: topic }));
-
-            return {
-                title,
-                topics,
-            };
-        })
-        .filter((module) => module.title);
-}
-
-function parseTopicList(rawTopics) {
-    const value = rawTopics || '';
-    const parts = /\r?\n/.test(value)
-        ? value.split(/\r?\n/)
-        : value.split(',');
-
-    return parts
-        .map((topic) => topic.trim())
-        .filter(Boolean);
-}
+import { parseModulesInput, parseTopicList } from '../utils/courseData';
 
 function PlusIcon() {
     return (
@@ -129,7 +87,7 @@ export function CoursesView({
         event.preventDefault();
 
         const title = courseTitle.trim();
-        const modules = parseModules(modulesText);
+        const modules = parseModulesInput(modulesText);
 
         if (!title) {
             setFormError('Enter a course title.');
@@ -163,7 +121,7 @@ export function CoursesView({
     const handleModuleSubmit = (event, courseId) => {
         event.preventDefault();
         event.stopPropagation();
-        const parsedModules = parseModules(moduleDraft);
+        const parsedModules = parseModulesInput(moduleDraft);
         if (!parsedModules.length) {
             setModuleError('Enter at least one module.');
             return;

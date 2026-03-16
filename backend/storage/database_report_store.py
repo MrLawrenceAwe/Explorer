@@ -9,13 +9,12 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, Iterable, Optional
 
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.db import Report, ReportStatus, SavedTopic, User, session_scope
+from backend.db import Report, ReportStatus, session_scope
 from backend.schemas import GenerateRequest, Outline
-from backend.utils.slug_utils import slugify
+from backend.utils.saved_topics import get_or_create_saved_topic
 from backend.utils.user_utils import get_or_create_user
 from backend.db.session import create_session_factory_from_env
 
@@ -112,12 +111,7 @@ class DatabaseReportStore:
                         overwrite_placeholder=True,
                         placeholder_names=(_SYSTEM_USERNAME,),
                     )
-                    saved_topic = self._get_or_create_saved_topic(
-                        session,
-                        user,
-                        topic_title,
-                        slug_override=self._generate_slug_variant(topic_title, attempt),
-                    )
+                    saved_topic = get_or_create_saved_topic(session, user, topic_title)
                     report = Report(
                         saved_topic=saved_topic,
                         owner=user,
@@ -186,48 +180,6 @@ class DatabaseReportStore:
         if outline_title:
             return outline_title
         return _FALLBACK_REPORT_TITLE
-
-    def _get_or_create_saved_topic(
-        self,
-        session: Session,
-        user: User,
-        title: str,
-        *,
-        slug_override: Optional[str] = None,
-    ) -> SavedTopic:
-        existing_topic = session.scalar(
-            select(SavedTopic).where(
-                SavedTopic.owner_user_id == user.id,
-                SavedTopic.title == title,
-            )
-        )
-        if existing_topic:
-            if existing_topic.is_deleted:
-                existing_topic.is_deleted = False
-            return existing_topic
-        base_slug = slug_override or slugify(title)
-        slug = base_slug
-        while True:
-            existing = session.scalar(select(SavedTopic).where(SavedTopic.slug == slug))
-            if existing is None:
-                break
-            if existing.owner_user_id == user.id and existing.title == title:
-                return existing
-            slug = f"{base_slug}-{uuid.uuid4().hex[:8]}"
-        topic = SavedTopic(
-            slug=slug,
-            title=title,
-            owner=user,
-        )
-        session.add(topic)
-        session.flush()
-        return topic
-
-    def _generate_slug_variant(self, base_title: str, attempt: int) -> str:
-        if attempt == 0:
-            return slugify(base_title)
-        suffix = uuid.uuid4().hex[:6]
-        return f"{slugify(base_title)}-{attempt}-{suffix}"
 
     def _remove_artifacts(self, handle: StoredReportHandle) -> None:
         if handle.report_dir.exists():
